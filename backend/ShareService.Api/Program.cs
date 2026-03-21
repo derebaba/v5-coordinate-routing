@@ -1,3 +1,4 @@
+using MongoDB.Bson;
 using MongoDB.Driver;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -15,6 +16,8 @@ var mongoConnectionString = Require("Mongo:ConnectionString");
 var mongoDatabaseName = Require("Mongo:DatabaseName");
 var jwtSecret = Require("Auth:JwtSecret");
 var allowedOriginsRaw = Require("Cors:AllowedOrigins");
+
+const long MaxBodySize = 5 * 1024 * 1024; // 5 MB
 
 var allowedOrigins = allowedOriginsRaw
     .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
@@ -34,11 +37,25 @@ builder.Services.AddSingleton<IMongoClient>(new MongoClient(mongoConnectionStrin
 builder.Services.AddSingleton(sp =>
     sp.GetRequiredService<IMongoClient>().GetDatabase(mongoDatabaseName));
 
+builder.WebHost.ConfigureKestrel(options =>
+{
+    options.Limits.MaxRequestBodySize = MaxBodySize;
+});
+
 var app = builder.Build();
 
 // --- Middleware ---
 app.UseCors("Frontend");
 app.UseStaticFiles();
+
+bool IsAuthorized(HttpContext ctx)
+{
+    var header = ctx.Request.Headers.Authorization.ToString();
+    if (!header.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+        return false;
+    var token = header["Bearer ".Length..].Trim();
+    return token == jwtSecret;
+}
 
 // --- Endpoints ---
 app.MapGet("/health", async (IMongoClient client) =>
@@ -47,6 +64,121 @@ app.MapGet("/health", async (IMongoClient client) =>
     await db.RunCommandAsync<MongoDB.Bson.BsonDocument>(
         new MongoDB.Bson.BsonDocument("ping", 1));
     return Results.Ok(new { status = "ok" });
+});
+
+app.MapPost("/documents", async (HttpContext ctx, IMongoDatabase db) =>
+{
+    if (!IsAuthorized(ctx))
+        return Results.Json(new { error = "Missing or invalid bearer token." }, statusCode: 401);
+
+    if (ctx.Request.ContentLength > MaxBodySize)
+        return Results.Json(new { error = "Payload exceeds 5 MB limit." }, statusCode: 413);
+
+    string body;
+    try
+    {
+        body = await new StreamReader(ctx.Request.Body).ReadToEndAsync();
+    }
+    catch (BadHttpRequestException)
+    {
+        return Results.Json(new { error = "Payload exceeds 5 MB limit." }, statusCode: 413);
+    }
+
+    if (string.IsNullOrWhiteSpace(body))
+        return Results.Json(new { error = "Request body is required." }, statusCode: 400);
+
+    try
+    {
+        using var jsonDoc = System.Text.Json.JsonDocument.Parse(body);
+    }
+    catch (System.Text.Json.JsonException)
+    {
+        return Results.Json(new { error = "Invalid JSON payload." }, statusCode: 400);
+    }
+
+    var id = Guid.NewGuid().ToString("D").ToLowerInvariant();
+    var now = new DateTime(DateTime.UtcNow.Ticks / TimeSpan.TicksPerMillisecond * TimeSpan.TicksPerMillisecond, DateTimeKind.Utc);
+
+    var doc = new BsonDocument
+    {
+        { "_id", id },
+        { "createdAt", now },
+        { "updatedAt", now },
+        { "payloadJson", body }
+    };
+
+    var collection = db.GetCollection<BsonDocument>("documents");
+    await collection.InsertOneAsync(doc);
+
+    var url = $"{ctx.Request.Scheme}://{ctx.Request.Host}/documents/{id}";
+
+    return Results.Json(new { id, url, createdAt = now }, statusCode: 201);
+});
+
+app.MapGet("/documents/{id}", async (string id, IMongoDatabase db) =>
+{
+    var collection = db.GetCollection<BsonDocument>("documents");
+    var doc = await collection.Find(new BsonDocument("_id", id)).FirstOrDefaultAsync();
+
+    if (doc == null)
+        return Results.Json(new { error = "Document not found." }, statusCode: 404);
+
+    var payloadJson = doc["payloadJson"].AsString;
+    return Results.Content(payloadJson, "application/json");
+});
+
+app.MapPut("/documents/{id}", async (string id, HttpContext ctx, IMongoDatabase db) =>
+{
+    if (!IsAuthorized(ctx))
+        return Results.Json(new { error = "Missing or invalid bearer token." }, statusCode: 401);
+
+    if (ctx.Request.ContentLength > MaxBodySize)
+        return Results.Json(new { error = "Payload exceeds 5 MB limit." }, statusCode: 413);
+
+    string body;
+    try
+    {
+        body = await new StreamReader(ctx.Request.Body).ReadToEndAsync();
+    }
+    catch (BadHttpRequestException)
+    {
+        return Results.Json(new { error = "Payload exceeds 5 MB limit." }, statusCode: 413);
+    }
+
+    if (string.IsNullOrWhiteSpace(body))
+        return Results.Json(new { error = "Request body is required." }, statusCode: 400);
+
+    try
+    {
+        using var jsonDoc = System.Text.Json.JsonDocument.Parse(body);
+    }
+    catch (System.Text.Json.JsonException)
+    {
+        return Results.Json(new { error = "Invalid JSON payload." }, statusCode: 400);
+    }
+
+    var collection = db.GetCollection<BsonDocument>("documents");
+    var existing = await collection.Find(new BsonDocument("_id", id)).FirstOrDefaultAsync();
+
+    if (existing == null)
+        return Results.Json(new { error = "Document not found." }, statusCode: 404);
+
+    var createdAt = existing["createdAt"].ToUniversalTime();
+    var now = DateTime.UtcNow;
+
+    var replacement = new BsonDocument
+    {
+        { "_id", id },
+        { "createdAt", createdAt },
+        { "updatedAt", now },
+        { "payloadJson", body }
+    };
+
+    await collection.ReplaceOneAsync(new BsonDocument("_id", id), replacement);
+
+    var url = $"{ctx.Request.Scheme}://{ctx.Request.Host}/documents/{id}";
+
+    return Results.Json(new { id, url, createdAt });
 });
 
 app.Run();
