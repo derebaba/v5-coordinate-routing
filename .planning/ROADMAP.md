@@ -66,6 +66,16 @@ Plans:
 - [ ] `03-01-PLAN.md` — Backend viewer route, API URL update to /viewer/{id}, integration tests
 - [ ] `03-02-PLAN.md` — Frontend share URL display + copy button, full viewer page with rendering/errors/download
 
+### Phase 03.1: Editable Sharing (INSERTED)
+
+**Goal:** Shared link loads document data into the full scheduler app for editing; users can save changes back to the server
+**Requirements**: TBD
+**Depends on:** Phase 3
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd-plan-phase 03.1 to break down)
+
 ### Phase 4: Deployment
 **Goal**: The team can deploy the service to Fly.io + MongoDB Atlas using documented steps with no manual config guesswork
 **Depends on**: Phase 3
