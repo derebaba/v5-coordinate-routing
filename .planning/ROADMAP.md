@@ -84,6 +84,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation | 2/2 | Complete | 2026-03-21 |
-| 2. Core API | 0/TBD | Not started | - |
-| 3. Frontend + Viewer | 0/TBD | Not started | - |
+| 2. Core API | 1/1 | Complete | 2026-03-21 |
+| 3. Frontend + Viewer | 2/2 | Complete | 2026-03-21 |
 | 4. Deployment | 0/TBD | Not started | - |
