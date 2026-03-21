@@ -69,12 +69,14 @@ Plans:
 ### Phase 03.1: Editable Sharing (INSERTED)
 
 **Goal:** Shared link loads document data into the full scheduler app for editing; users can save changes back to the server
-**Requirements**: TBD
+**Requirements**: EDIT-01, EDIT-02, EDIT-03, EDIT-04, EDIT-05
 **Depends on:** Phase 3
-**Plans:** 0 plans
+**Plans:** 3 plans
 
 Plans:
-- [ ] TBD (run /gsd-plan-phase 03.1 to break down)
+- [ ] `03.1-01-PLAN.md` — Backend /edit/{id} route (TDD), wwwroot index.html stub, Dockerfile frontend asset copy
+- [ ] `03.1-02-PLAN.md` — Frontend EDIT_MODE detection, document auto-load, API URL pre-fill, PUT save-back with confirmation
+- [ ] `03.1-03-PLAN.md` — Human verification checkpoint: end-to-end editable sharing flow
 
 ### Phase 4: Deployment
 **Goal**: The team can deploy the service to Fly.io + MongoDB Atlas using documented steps with no manual config guesswork
