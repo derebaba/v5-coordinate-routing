@@ -29,7 +29,11 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. `.env` holds all secrets; `.env.example` contains only placeholders; `.env` is in `.gitignore`
   4. MongoDB data survives `docker compose down` + `docker compose up` via a named volume
   5. API reads allowed origins and JWT secret from environment variables — nothing is hardcoded
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+- [ ] `01-01-PLAN.md` — Scaffold the .NET API, fail-fast environment contract, and health/config tests
+- [ ] `01-02-PLAN.md` — Add Compose startup, Mongo persistence, and local operator documentation
 
 ### Phase 2: Core API
 **Goal**: Team members can upload, publicly share, and replace route documents through the API
@@ -72,7 +76,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation | 0/TBD | Not started | - |
+| 1. Foundation | 0/2 | Not started | - |
 | 2. Core API | 0/TBD | Not started | - |
 | 3. Frontend + Viewer | 0/TBD | Not started | - |
 | 4. Deployment | 0/TBD | Not started | - |
