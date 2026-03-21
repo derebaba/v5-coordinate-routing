@@ -27,8 +27,8 @@
 
 ### Viewer
 
-- [ ] **VIEW-01**: Anyone with a share URL can open a formatted read-only viewer page for the shared route document
-- [ ] **VIEW-02**: Viewer page handles invalid or unsupported document data with a clear error state
+- [x] **VIEW-01**: Anyone with a share URL can open a formatted read-only viewer page for the shared route document
+- [x] **VIEW-02**: Viewer page handles invalid or unsupported document data with a clear error state
 - [ ] **VIEW-03**: Viewer page provides a download action for the shared JSON document
 
 ### Operations
@@ -80,8 +80,8 @@
 | SHARE-01 | Phase 3 | Pending |
 | SHARE-02 | Phase 3 | Pending |
 | SHARE-03 | Phase 2 | Complete |
-| VIEW-01 | Phase 3 | Pending |
-| VIEW-02 | Phase 3 | Pending |
+| VIEW-01 | Phase 3 | Complete |
+| VIEW-02 | Phase 3 | Complete |
 | VIEW-03 | Phase 3 | Pending |
 | OPS-01 | Phase 1 | Complete |
 | OPS-02 | Phase 1 | Complete |
