@@ -243,6 +243,10 @@ function bindEvents() {
   el.uploadToApi.addEventListener("click", onUploadToApi);
   el.apiBaseUrl.value = localStorage.getItem("api_base_url") || "";
   el.apiJwtToken.value = localStorage.getItem("api_jwt_token") || "";
+  if (EDIT_MODE) {
+    el.apiBaseUrl.value = window.location.origin;
+    localStorage.setItem("api_base_url", window.location.origin);
+  }
   el.apiBaseUrl.addEventListener("change", () => localStorage.setItem("api_base_url", el.apiBaseUrl.value.trim()));
   el.apiJwtToken.addEventListener("change", () => localStorage.setItem("api_jwt_token", el.apiJwtToken.value.trim()));
   el.importJsonInput.addEventListener("change", onImportJson);
@@ -5810,7 +5814,9 @@ function onExportJson() {
 }
 
 async function onUploadToApi() {
-  const baseUrl = (el.apiBaseUrl.value || localStorage.getItem("api_base_url") || "").trim().replace(/\/$/, "");
+  const baseUrl = EDIT_MODE
+    ? window.location.origin
+    : (el.apiBaseUrl.value || localStorage.getItem("api_base_url") || "").trim().replace(/\/$/, "");
   const token = (el.apiJwtToken.value || localStorage.getItem("api_jwt_token") || "").trim();
   const status = el.uploadToApiStatus;
 
@@ -5824,6 +5830,9 @@ async function onUploadToApi() {
     status.style.color = "var(--color-error, #c0392b)";
     return;
   }
+  if (EDIT_MODE) {
+    if (!confirm("This will update the shared document. Continue?")) return;
+  }
 
   const payload = {
     schemaVersion: state.schemaVersion,
@@ -5831,13 +5840,15 @@ async function onUploadToApi() {
     cities: state.cities
   };
 
-  status.textContent = "Uploading…";
+  status.textContent = EDIT_MODE ? "Updating shared document…" : "Uploading…";
   status.style.color = "";
   el.uploadToApi.disabled = true;
 
   try {
-    const res = await fetch(`${baseUrl}/documents`, {
-      method: "POST",
+    const fetchUrl = EDIT_MODE ? `${baseUrl}/documents/${EDIT_MODE.documentId}` : `${baseUrl}/documents`;
+    const fetchMethod = EDIT_MODE ? "PUT" : "POST";
+    const res = await fetch(fetchUrl, {
+      method: fetchMethod,
       headers: {
         "Content-Type": "application/json",
         "Authorization": `Bearer ${token}`
@@ -5848,7 +5859,10 @@ async function onUploadToApi() {
     if (res.ok) {
       const data = await res.json().catch(() => ({}));
       const shareUrl = data.url || "";
-      if (shareUrl) {
+      if (EDIT_MODE) {
+        status.textContent = "Shared document updated successfully.";
+        status.style.color = "var(--color-success, #27ae60)";
+      } else if (shareUrl) {
         status.innerHTML = "";
         status.style.color = "var(--color-success, #27ae60)";
 
