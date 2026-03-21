@@ -36,6 +36,8 @@ public class EditTests : IDisposable
     {
         var response = await _client.GetAsync("/edit/some-test-id");
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.Contains("<!doctype html>", body, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
