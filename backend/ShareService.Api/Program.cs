@@ -110,7 +110,7 @@ app.MapPost("/documents", async (HttpContext ctx, IMongoDatabase db) =>
     var collection = db.GetCollection<BsonDocument>("documents");
     await collection.InsertOneAsync(doc);
 
-    var url = $"{ctx.Request.Scheme}://{ctx.Request.Host}/documents/{id}";
+    var url = $"{ctx.Request.Scheme}://{ctx.Request.Host}/viewer/{id}";
 
     return Results.Json(new { id, url, createdAt = now }, statusCode: 201);
 });
@@ -176,9 +176,18 @@ app.MapPut("/documents/{id}", async (string id, HttpContext ctx, IMongoDatabase 
 
     await collection.ReplaceOneAsync(new BsonDocument("_id", id), replacement);
 
-    var url = $"{ctx.Request.Scheme}://{ctx.Request.Host}/documents/{id}";
+    var url = $"{ctx.Request.Scheme}://{ctx.Request.Host}/viewer/{id}";
 
     return Results.Json(new { id, url, createdAt });
+});
+
+app.MapGet("/viewer/{id}", async (string id, IWebHostEnvironment env) =>
+{
+    var filePath = Path.Combine(env.WebRootPath, "viewer.html");
+    if (!File.Exists(filePath))
+        return Results.NotFound();
+    var html = await File.ReadAllTextAsync(filePath);
+    return Results.Content(html, "text/html");
 });
 
 app.Run();
