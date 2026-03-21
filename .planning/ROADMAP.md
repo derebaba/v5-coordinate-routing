@@ -45,7 +45,10 @@ Plans:
   3. `PUT /documents/{id}` with a valid bearer token replaces the payload; the share URL is unchanged
   4. `POST` or `PUT` with a missing or invalid token returns 401; `GET` requires no token
   5. `POST` or `PUT` with a payload exceeding 5 MB returns 413 with a clear error message
-**Plans**: TBD
+**Plans**: 1 plan
+
+Plans:
+- [ ] `02-01-PLAN.md` — TDD: Integration tests + POST/GET/PUT endpoints with auth and body limit
 
 ### Phase 3: Frontend + Viewer
 **Goal**: Anyone with a share URL can view a formatted page; uploaders see a ready-to-share link immediately
