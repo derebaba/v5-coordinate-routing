@@ -4,8 +4,301 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Shared Route Document</title>
+  <style>
+    /* EXACT styles from UI-SPEC Viewer Styles Contract */
+    :root {
+      --bg: #f4f7f3;
+      --panel: #ffffff;
+      --line: #d5dfd2;
+      --text: #1d2a1f;
+      --muted: #5d6b60;
+      --primary: #1e7a46;
+      --primary-dark: #176138;
+      --danger: #c53e3e;
+      --err-bg: #fff0f0;
+      --err-line: #e4a0a0;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(160deg, #eef4ea 0%, var(--bg) 45%, #f8fbf8 100%);
+      color: var(--text);
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: 22px auto;
+      padding: 0 16px;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 14px;
+      margin-bottom: 14px;
+      box-shadow: 0 7px 20px rgba(17, 31, 17, 0.05);
+    }
+
+    .error-panel {
+      background: var(--err-bg);
+      border-color: var(--err-line);
+      text-align: center;
+      padding: 40px 14px;
+    }
+
+    .header-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .header-bar h1 {
+      margin: 0;
+      font-size: 1.2rem;
+      font-weight: 700;
+      line-height: 1.2;
+    }
+
+    h2 {
+      margin: 0 0 8px;
+      font-size: 1.2rem;
+      font-weight: 700;
+      line-height: 1.2;
+    }
+
+    .muted {
+      color: var(--muted);
+      font-size: 0.93rem;
+      margin: 0 0 10px;
+    }
+
+    button {
+      font: inherit;
+      border: 0;
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-weight: 600;
+      cursor: pointer;
+      background: var(--primary);
+      color: #fff;
+    }
+
+    button:hover {
+      background: var(--primary-dark);
+    }
+
+    button:focus {
+      outline: 2px solid #9cc9a8;
+      outline-offset: 1px;
+    }
+
+    .table-wrap {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      overflow: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th, td {
+      text-align: left;
+      border-bottom: 1px solid #e5ece3;
+      padding: 9px 10px;
+      vertical-align: top;
+      font-size: 0.93rem;
+    }
+
+    th {
+      background: #f6faf5;
+      color: #324739;
+    }
+
+    tr:last-child td {
+      border-bottom: 0;
+    }
+
+    #loading {
+      text-align: center;
+      padding: 40px 14px;
+    }
+
+    .error-text {
+      color: var(--danger);
+    }
+  </style>
 </head>
 <body>
-  <p>Loading viewer…</p>
+  <main class="container">
+    <header class="panel">
+      <div class="header-bar">
+        <h1>Shared Route Document</h1>
+        <div id="actions" hidden>
+          <button id="download-btn" type="button">Download JSON</button>
+        </div>
+      </div>
+    </header>
+
+    <div id="loading">Loading document…</div>
+
+    <div id="error" class="panel error-panel" role="alert" hidden></div>
+
+    <div id="content" hidden></div>
+  </main>
+
+  <script>
+    (function () {
+      "use strict";
+
+      let documentData = null;
+
+      const loadingEl = document.getElementById("loading");
+      const errorEl = document.getElementById("error");
+      const contentEl = document.getElementById("content");
+      const actionsEl = document.getElementById("actions");
+      const downloadBtn = document.getElementById("download-btn");
+
+      const docId = window.location.pathname.split("/").pop();
+
+      function showError(message) {
+        loadingEl.hidden = true;
+        contentEl.hidden = true;
+        actionsEl.hidden = true;
+        errorEl.hidden = false;
+        errorEl.textContent = message;
+      }
+
+      function buildSchoolsTable(schools) {
+        var wrap = document.createElement("div");
+        wrap.className = "table-wrap";
+
+        var table = document.createElement("table");
+        var thead = document.createElement("thead");
+        var headerRow = document.createElement("tr");
+
+        ["Name", "District", "Type"].forEach(function (text) {
+          var th = document.createElement("th");
+          th.textContent = text;
+          headerRow.appendChild(th);
+        });
+
+        thead.appendChild(headerRow);
+        table.appendChild(thead);
+
+        var tbody = document.createElement("tbody");
+        schools.forEach(function (school) {
+          var tr = document.createElement("tr");
+
+          var tdName = document.createElement("td");
+          tdName.textContent = school.name || "";
+          tr.appendChild(tdName);
+
+          var tdDistrict = document.createElement("td");
+          tdDistrict.textContent = school.district || "";
+          tr.appendChild(tdDistrict);
+
+          var tdType = document.createElement("td");
+          tdType.textContent = school.schoolType || "";
+          tr.appendChild(tdType);
+
+          tbody.appendChild(tr);
+        });
+
+        table.appendChild(tbody);
+        wrap.appendChild(table);
+        return wrap;
+      }
+
+      function renderDocument(data) {
+        loadingEl.hidden = true;
+        contentEl.hidden = false;
+        actionsEl.hidden = false;
+
+        if (data.cities && data.cities.length > 0 && data.cities[0].name) {
+          document.title = "Shared: " + data.cities[0].name + " \u2014 Fieldwork Scheduler";
+        }
+
+        data.cities.forEach(function (city) {
+          var section = document.createElement("div");
+          section.className = "panel";
+
+          var h2 = document.createElement("h2");
+          h2.textContent = city.name || "Unnamed City";
+          section.appendChild(h2);
+
+          var stats = document.createElement("p");
+          stats.className = "muted";
+          var schoolCount = (city.schools && city.schools.length) || 0;
+          var researcherCount = (city.researchers && city.researchers.length) || 0;
+          var dayCount = (city.dayPlans && city.dayPlans.length) || 0;
+          stats.textContent = schoolCount + " schools \u00B7 " + researcherCount + " researchers \u00B7 " + dayCount + " working days";
+          section.appendChild(stats);
+
+          if (city.schools && city.schools.length > 0) {
+            section.appendChild(buildSchoolsTable(city.schools));
+          } else {
+            var empty = document.createElement("p");
+            empty.className = "muted";
+            empty.textContent = "No schools in this workspace.";
+            section.appendChild(empty);
+          }
+
+          contentEl.appendChild(section);
+        });
+      }
+
+      function downloadJson() {
+        if (!documentData) return;
+        var blob = new Blob([JSON.stringify(documentData, null, 2)], { type: "application/json" });
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement("a");
+        a.href = url;
+        a.download = "shared-document-" + docId + ".json";
+        a.click();
+        URL.revokeObjectURL(url);
+      }
+
+      async function loadDocument() {
+        try {
+          var res = await fetch("/documents/" + docId);
+
+          if (!res.ok) {
+            if (res.status === 404) {
+              showError("Document not found. It may have been removed or the link may be incorrect.");
+              return;
+            }
+            showError("Error loading document (status " + res.status + "). Please try again later.");
+            return;
+          }
+
+          var data;
+          try {
+            data = await res.json();
+          } catch (e) {
+            showError("This document uses an unsupported format and cannot be displayed.");
+            return;
+          }
+
+          if (!data || !Array.isArray(data.cities)) {
+            showError("This document uses an unsupported format and cannot be displayed.");
+            return;
+          }
+
+          documentData = data;
+          renderDocument(data);
+
+        } catch (err) {
+          showError("Failed to load document. Please check your connection and try again.");
+        }
+      }
+
+      downloadBtn.addEventListener("click", downloadJson);
+      loadDocument();
+    })();
+  </script>
 </body>
 </html>
