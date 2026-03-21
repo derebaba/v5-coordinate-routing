@@ -7,6 +7,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="ShareService.Api.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="MongoDB.Driver" Version="2.28.0" />
   </ItemGroup>
 
