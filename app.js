@@ -1,6 +1,13 @@
 const LEGACY_STORAGE_KEY = "fieldwork-scheduler-v1";
 const STORAGE_PREFIX = "fieldwork-scheduler-v3";
 const PENDING_IMPORT_PREFIX = "fieldwork-scheduler-pending-import-v3";
+
+function getEditModeFromUrl() {
+  const match = window.location.pathname.match(/^\/edit\/([^/]+)$/);
+  return match ? { documentId: match[1] } : null;
+}
+const EDIT_MODE = getEditModeFromUrl();
+
 const SCHEMA_VERSION = 5;
 const ROUTE_CACHE_DB_NAME = "fieldworkSchedulerDB";
 const ROUTE_CACHE_DB_VERSION = 2;
@@ -164,6 +171,9 @@ renderRouteBuilderStatus();
 renderAll();
 applyPendingImportIfExists();
 bootstrapRouteCachePersistence();
+if (EDIT_MODE) {
+  loadEditDocumentIfNeeded();
+}
 
 function bindEvents() {
   if (el.cityTabs) {
@@ -248,6 +258,10 @@ function bindEvents() {
 }
 
 function getSessionIdFromUrl() {
+  const editMatch = window.location.pathname.match(/^\/edit\/([^/]+)$/);
+  if (editMatch) {
+    return `edit_${editMatch[1]}`;
+  }
   const params = new URLSearchParams(window.location.search);
   const value = String(params.get("session") || "").trim();
   if (value) {
@@ -5922,6 +5936,44 @@ async function onImportJson(event) {
     alert("Could not import JSON. Please check the file format.");
   } finally {
     event.target.value = "";
+  }
+}
+
+async function loadEditDocumentIfNeeded() {
+  if (!EDIT_MODE) return;
+  const apiBase = window.location.origin;
+  try {
+    const res = await fetch(`${apiBase}/documents/${EDIT_MODE.documentId}`);
+    if (!res.ok) {
+      alert(`Failed to load shared document (${res.status}). The document may not exist.`);
+      return;
+    }
+    const data = await res.json();
+    const normalized = normalizeState(data);
+    await removeAllRouteCacheForSessionFromDb();
+    replaceState(normalized);
+    for (const city of state.cities || []) {
+      await replaceRouteCacheForCityInDb(city.id, city.routeCache || []);
+    }
+    saveState();
+
+    uiState.selectedDayId = "";
+    uiState.selectedVerificationDayId = "";
+    uiState.selectedDayIdsByCity = {};
+    uiState.selectedVerificationDayIdsByCity = {};
+    uiState.plannerDraft = null;
+    uiState.plannerDraftCache = {};
+    uiState.plannerDirty = false;
+    uiState.lastValidation = null;
+    uiState.routeInsights = null;
+
+    resetResearcherForm();
+    resetDayPlanForm();
+    renderAll();
+    renderRouteCacheStatus();
+  } catch (err) {
+    console.error(err);
+    alert("Could not load shared document. Check your connection and try again.");
   }
 }
 

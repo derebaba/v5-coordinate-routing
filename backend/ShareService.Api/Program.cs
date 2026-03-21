@@ -190,4 +190,14 @@ app.MapGet("/viewer/{id}", async (string id, IWebHostEnvironment env) =>
     return Results.Content(html, "text/html");
 });
 
+app.MapGet("/edit/{id}", async (string id, IWebHostEnvironment env) =>
+{
+    var filePath = Path.Combine(env.WebRootPath, "index.html");
+    if (!File.Exists(filePath))
+        return Results.NotFound();
+    var html = await File.ReadAllTextAsync(filePath);
+    html = html.Replace("<head>", "<head>\n  <base href=\"/\">");
+    return Results.Content(html, "text/html");
+});
+
 app.Run();
