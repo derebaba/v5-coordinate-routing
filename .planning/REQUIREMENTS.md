@@ -21,15 +21,15 @@
 
 ### Sharing
 
-- [ ] **SHARE-01**: Frontend displays the full shareable URL after a successful upload
-- [ ] **SHARE-02**: Team member can copy the shareable URL from the frontend
+- [x] **SHARE-01**: Frontend displays the full shareable URL after a successful upload
+- [x] **SHARE-02**: Team member can copy the shareable URL from the frontend
 - [x] **SHARE-03**: Anyone with a share URL can retrieve the shared route document as JSON
 
 ### Viewer
 
 - [x] **VIEW-01**: Anyone with a share URL can open a formatted read-only viewer page for the shared route document
 - [x] **VIEW-02**: Viewer page handles invalid or unsupported document data with a clear error state
-- [ ] **VIEW-03**: Viewer page provides a download action for the shared JSON document
+- [x] **VIEW-03**: Viewer page provides a download action for the shared JSON document
 
 ### Operations
 
@@ -77,12 +77,12 @@
 | DOC-04 | Phase 2 | Complete |
 | DOC-05 | Phase 2 | Complete |
 | DOC-06 | Phase 2 | Complete |
-| SHARE-01 | Phase 3 | Pending |
-| SHARE-02 | Phase 3 | Pending |
+| SHARE-01 | Phase 3 | Complete |
+| SHARE-02 | Phase 3 | Complete |
 | SHARE-03 | Phase 2 | Complete |
 | VIEW-01 | Phase 3 | Complete |
 | VIEW-02 | Phase 3 | Complete |
-| VIEW-03 | Phase 3 | Pending |
+| VIEW-03 | Phase 3 | Complete |
 | OPS-01 | Phase 1 | Complete |
 | OPS-02 | Phase 1 | Complete |
 | OPS-03 | Phase 1 | Complete |
