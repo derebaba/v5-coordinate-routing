@@ -71,7 +71,7 @@ Plans:
 **Goal:** Shared link loads document data into the full scheduler app for editing; users can save changes back to the server
 **Requirements**: EDIT-01, EDIT-02, EDIT-03, EDIT-04, EDIT-05
 **Depends on:** Phase 3
-**Plans:** 1/3 plans executed
+**Plans:** 2/3 plans executed
 
 Plans:
 - [ ] `03.1-01-PLAN.md` — Backend /edit/{id} route (TDD), wwwroot index.html stub, Dockerfile frontend asset copy

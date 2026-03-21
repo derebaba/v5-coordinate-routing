@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: completed
-stopped_at: Completed 03.1-01-PLAN.md
-last_updated: "2026-03-21T16:52:16.865Z"
-last_activity: "2026-03-21 — Completed 03-02-PLAN: Share URL Display & Viewer Page"
+status: in_progress
+stopped_at: Completed 03.1-editable-sharing-02-PLAN.md
+last_updated: "2026-03-21T17:00:30.000Z"
+last_activity: "2026-03-21 — Completed 03.1-02-PLAN: Editable sharing frontend edit/load/save flow"
 progress:
   total_phases: 5
   completed_phases: 3
   total_plans: 8
-  completed_plans: 6
-  percent: 100
+  completed_plans: 7
+  percent: 88
 ---
 
 # Project State
@@ -25,12 +25,12 @@ See: .planning/PROJECT.md (updated 2026-03-21)
 
 ## Current Position
 
-Phase: 3 of 4 (Frontend Viewer)
-Plan: 2 of 2 in current phase
-Status: Phase complete
-Last activity: 2026-03-21 — Completed 03-02-PLAN: Share URL Display & Viewer Page
+Phase: 03.1 of 4 (Editable Sharing - Inserted)
+Plan: 2 of 3 in current phase
+Status: In progress
+Last activity: 2026-03-21 — Completed 03.1-02-PLAN: Editable sharing frontend edit/load/save flow
 
-Progress: [██████████] 100%
+Progress: [█████████░] 88%
 
 ## Performance Metrics
 
@@ -55,6 +55,7 @@ Progress: [██████████] 100%
 | Phase 03-frontend-viewer P01 | 2m | 2 tasks | 4 files |
 | Phase 03-frontend-viewer P02 | 3m | 2 tasks | 2 files |
 | Phase 03.1-editable-sharing P01 | 36m | 2 tasks | 2 files |
+| Phase 03.1-editable-sharing P02 | 8m | 2 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -82,6 +83,8 @@ Recent decisions affecting current work:
 - [Phase 03-frontend-viewer]: Standalone viewer.html with inline CSS/JS — no external app.js/styles.css dependencies
 - [Phase 03.1-editable-sharing]: Kept existing /edit route behavior and strengthened tests with doctype assertion for route contract completeness.
 - [Phase 03.1-editable-sharing]: Dockerfile copies frontend assets after API source copy so real index/app/styles overwrite test stub before publish.
+- [Phase 03.1-editable-sharing]: Use window.location.origin for edit-mode API base URL to avoid manual endpoint entry.
+- [Phase 03.1-editable-sharing]: Use deterministic edit_{documentId} session IDs to isolate shared-edit state from local sessions.
 
 ### Roadmap Evolution
 
@@ -97,6 +100,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-21T16:52:16.859Z
-Stopped at: Completed 03.1-01-PLAN.md
+Last session: 2026-03-21T16:53:03.441Z
+Stopped at: Completed 03.1-editable-sharing-02-PLAN.md
 Resume file: None
