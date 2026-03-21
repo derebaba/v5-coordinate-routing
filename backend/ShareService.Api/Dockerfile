@@ -1,10 +1,10 @@
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 
-COPY ShareService.Api.csproj .
+COPY backend/ShareService.Api/ShareService.Api.csproj .
 RUN dotnet restore
 
-COPY . .
+COPY backend/ShareService.Api/ .
 RUN dotnet publish -c Release -o /app/publish
 
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
