@@ -7,23 +7,23 @@
 
 ### Access
 
-- [ ] **AUTH-01**: Team member can authorize upload and replace actions by entering a shared bearer token in the existing frontend token field
-- [ ] **AUTH-02**: Unauthenticated users can open shared document URLs without signing in
+- [x] **AUTH-01**: Team member can authorize upload and replace actions by entering a shared bearer token in the existing frontend token field
+- [x] **AUTH-02**: Unauthenticated users can open shared document URLs without signing in
 
 ### Documents
 
-- [ ] **DOC-01**: Team member can upload exported route JSON from the existing frontend to the backend
-- [ ] **DOC-02**: Backend returns a stable share ID and shareable URL after a successful upload
-- [ ] **DOC-03**: Team member can replace the JSON stored behind an existing share ID without changing the public URL
-- [ ] **DOC-04**: Shared documents are stored in a NoSQL database
-- [ ] **DOC-05**: Stored shared documents preserve `routeCache` data when persisted
-- [ ] **DOC-06**: Backend rejects oversized uploads with a clear error response
+- [x] **DOC-01**: Team member can upload exported route JSON from the existing frontend to the backend
+- [x] **DOC-02**: Backend returns a stable share ID and shareable URL after a successful upload
+- [x] **DOC-03**: Team member can replace the JSON stored behind an existing share ID without changing the public URL
+- [x] **DOC-04**: Shared documents are stored in a NoSQL database
+- [x] **DOC-05**: Stored shared documents preserve `routeCache` data when persisted
+- [x] **DOC-06**: Backend rejects oversized uploads with a clear error response
 
 ### Sharing
 
 - [ ] **SHARE-01**: Frontend displays the full shareable URL after a successful upload
 - [ ] **SHARE-02**: Team member can copy the shareable URL from the frontend
-- [ ] **SHARE-03**: Anyone with a share URL can retrieve the shared route document as JSON
+- [x] **SHARE-03**: Anyone with a share URL can retrieve the shared route document as JSON
 
 ### Viewer
 
@@ -69,17 +69,17 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| AUTH-01 | Phase 2 | Pending |
-| AUTH-02 | Phase 2 | Pending |
-| DOC-01 | Phase 2 | Pending |
-| DOC-02 | Phase 2 | Pending |
-| DOC-03 | Phase 2 | Pending |
-| DOC-04 | Phase 2 | Pending |
-| DOC-05 | Phase 2 | Pending |
-| DOC-06 | Phase 2 | Pending |
+| AUTH-01 | Phase 2 | Complete |
+| AUTH-02 | Phase 2 | Complete |
+| DOC-01 | Phase 2 | Complete |
+| DOC-02 | Phase 2 | Complete |
+| DOC-03 | Phase 2 | Complete |
+| DOC-04 | Phase 2 | Complete |
+| DOC-05 | Phase 2 | Complete |
+| DOC-06 | Phase 2 | Complete |
 | SHARE-01 | Phase 3 | Pending |
 | SHARE-02 | Phase 3 | Pending |
-| SHARE-03 | Phase 2 | Pending |
+| SHARE-03 | Phase 2 | Complete |
 | VIEW-01 | Phase 3 | Pending |
 | VIEW-02 | Phase 3 | Pending |
 | VIEW-03 | Phase 3 | Pending |

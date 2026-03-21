@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: completed
-stopped_at: Phase 2 context gathered
-last_updated: "2026-03-21T13:24:17.605Z"
+stopped_at: Completed 02-01-PLAN.md
+last_updated: "2026-03-21T14:26:15.557Z"
 last_activity: "2026-03-21 — Completed 01-02-PLAN: Docker Compose and local workflow"
 progress:
   total_phases: 4
-  completed_phases: 1
-  total_plans: 2
-  completed_plans: 2
+  completed_phases: 2
+  total_plans: 3
+  completed_plans: 3
   percent: 100
 ---
 
@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-03-21)
 
 ## Current Position
 
-Phase: 1 of 4 (Foundation)
-Plan: 2 of 2 in current phase
-Status: Phase complete
-Last activity: 2026-03-21 — Completed 01-02-PLAN: Docker Compose and local workflow
+Phase: 2 of 4 (Core API)
+Plan: 1 of 1 in current phase
+Status: Plan complete
+Last activity: 2026-03-21 — Completed 02-01-PLAN: Document API Endpoints
 
 Progress: [██████████] 100%
 
@@ -51,6 +51,7 @@ Progress: [██████████] 100%
 
 *Updated after each plan completion*
 | Phase 01 P02 | 8m | 2 tasks | 8 files |
+| Phase 02-core-api P01 | 4m | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -70,6 +71,8 @@ Recent decisions affecting current work:
 - 01-01: Mongo2Go for ephemeral MongoDB in tests — no Docker dependency for CI
 - [Phase 01]: Config keys use : separator (Mongo:ConnectionString) — ASP.NET env var provider translates __ to : automatically
 - [Phase 01]: MongoDB internal-only with no host port mapping — simplest secure default for Phase 1
+- [Phase 02-core-api]: Raw JSON string storage (payloadJson) instead of BsonDocument — avoids extended JSON format corruption
+- [Phase 02-core-api]: DateTime truncated to millisecond precision in POST — matches MongoDB BsonDateTime for consistent round-trip
 
 ### Pending Todos
 
@@ -81,6 +84,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-21T13:24:17.602Z
-Stopped at: Phase 2 context gathered
-Resume file: .planning/phases/02-core-api/02-CONTEXT.md
+Last session: 2026-03-21T14:26:15.554Z
+Stopped at: Completed 02-01-PLAN.md
+Resume file: None
