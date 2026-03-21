@@ -16,7 +16,7 @@
 - [ ] **DOC-02**: Backend returns a stable share ID and shareable URL after a successful upload
 - [ ] **DOC-03**: Team member can replace the JSON stored behind an existing share ID without changing the public URL
 - [ ] **DOC-04**: Shared documents are stored in a NoSQL database
-- [ ] **DOC-05**: Stored shared documents omit `routeCache` data before persistence
+- [ ] **DOC-05**: Stored shared documents preserve `routeCache` data when persisted
 - [ ] **DOC-06**: Backend rejects oversized uploads with a clear error response
 
 ### Sharing
@@ -69,31 +69,31 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| AUTH-01 | Phase TBD | Pending |
-| AUTH-02 | Phase TBD | Pending |
-| DOC-01 | Phase TBD | Pending |
-| DOC-02 | Phase TBD | Pending |
-| DOC-03 | Phase TBD | Pending |
-| DOC-04 | Phase TBD | Pending |
-| DOC-05 | Phase TBD | Pending |
-| DOC-06 | Phase TBD | Pending |
-| SHARE-01 | Phase TBD | Pending |
-| SHARE-02 | Phase TBD | Pending |
-| SHARE-03 | Phase TBD | Pending |
-| VIEW-01 | Phase TBD | Pending |
-| VIEW-02 | Phase TBD | Pending |
-| VIEW-03 | Phase TBD | Pending |
-| OPS-01 | Phase TBD | Pending |
-| OPS-02 | Phase TBD | Pending |
-| OPS-03 | Phase TBD | Pending |
-| OPS-04 | Phase TBD | Pending |
-| OPS-05 | Phase TBD | Pending |
+| AUTH-01 | Phase 2 | Pending |
+| AUTH-02 | Phase 2 | Pending |
+| DOC-01 | Phase 2 | Pending |
+| DOC-02 | Phase 2 | Pending |
+| DOC-03 | Phase 2 | Pending |
+| DOC-04 | Phase 2 | Pending |
+| DOC-05 | Phase 2 | Pending |
+| DOC-06 | Phase 2 | Pending |
+| SHARE-01 | Phase 3 | Pending |
+| SHARE-02 | Phase 3 | Pending |
+| SHARE-03 | Phase 2 | Pending |
+| VIEW-01 | Phase 3 | Pending |
+| VIEW-02 | Phase 3 | Pending |
+| VIEW-03 | Phase 3 | Pending |
+| OPS-01 | Phase 1 | Pending |
+| OPS-02 | Phase 1 | Pending |
+| OPS-03 | Phase 1 | Pending |
+| OPS-04 | Phase 4 | Pending |
+| OPS-05 | Phase 4 | Pending |
 
 **Coverage:**
 - v1 requirements: 19 total
-- Mapped to phases: 0
-- Unmapped: 19 ⚠️
+- Mapped to phases: 19
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-03-21*
-*Last updated: 2026-03-21 after initial definition*
+*Last updated: 2026-03-21 after preserving routeCache in shared documents*

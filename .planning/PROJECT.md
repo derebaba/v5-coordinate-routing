@@ -19,7 +19,8 @@ Make route export data easy to publish and share without passing JSON files arou
 - [ ] A user can upload exported JSON from the existing frontend to a .NET backend.
 - [ ] A user can receive and reuse a stable hash URL for a stored JSON document.
 - [ ] Anyone with the hash URL can view the stored JSON without authentication.
-- [ ] A logged-in team member can replace the JSON stored behind an existing hash URL.
+- [ ] A team member with the shared bearer token can replace the JSON stored behind an existing share URL.
+- [ ] Shared documents keep `routeCache` data so imported or viewed payloads retain cached route information.
 - [ ] The full stack can be started and tested locally with Docker.
 - [ ] The project includes a recommended free hosting target for later deployment.
 
@@ -27,7 +28,7 @@ Make route export data easy to publish and share without passing JSON files arou
 
 - Private viewer access controls — hash URLs are intentionally shareable between users.
 - Per-user history dashboards — not required for the first release flow.
-- Rich record management features like edit forms or delete UX — the current goal is upload, share, and replace.
+- Rich record management features like edit forms or delete UX — the current goal is upload, share, view, and replace.
 
 ## Context
 
@@ -41,7 +42,7 @@ The initial delivery should work locally through Docker so the team can test the
 - **Backend**: Use .NET for the server — required by project direction.
 - **Database**: Use a NoSQL database — JSON payloads should be stored without forcing a relational model first.
 - **Local Dev**: Must be testable via Docker — the full stack should be runnable locally in a repeatable way.
-- **Access Model**: Public read by hash, authenticated write for replacement — sharing must stay simple while updates remain restricted.
+- **Access Model**: Public read by share URL, shared-token write for replacement — sharing must stay simple while updates remain restricted.
 
 ## Key Decisions
 
@@ -49,7 +50,8 @@ The initial delivery should work locally through Docker so the team can test the
 |----------|-----------|---------|
 | Keep `index.html` as the frontend base | The existing export flow already works and should be extended instead of replaced by default | — Pending |
 | Use stable hash URLs for shared data | The main user value is shareable access without moving files around | — Pending |
-| Allow public viewing but require login for replacement | Shared links should be frictionless, but overwriting shared data needs team-level control | — Pending |
+| Allow public viewing but require a shared bearer token for replacement | Shared links should be frictionless, but overwriting shared data needs team-level control without building accounts | — Pending |
+| Keep `routeCache` in stored documents | Shared payloads should preserve cached route information for full-fidelity reuse | — Pending |
 | Run locally with Docker from the start | The team needs an easy way to test the full stack before deployment | — Pending |
 
 ---
