@@ -60,7 +60,11 @@ Plans:
   3. Opening `/viewer/{id}` in a browser renders the route document in a formatted, human-readable layout (not raw JSON)
   4. Opening `/viewer/{id}` for a missing or unsupported document shows a clear error state (not a blank page or crash)
   5. The viewer page provides a Download button that saves the raw JSON file to disk
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+- [ ] `03-01-PLAN.md` — Backend viewer route, API URL update to /viewer/{id}, integration tests
+- [ ] `03-02-PLAN.md` — Frontend share URL display + copy button, full viewer page with rendering/errors/download
 
 ### Phase 4: Deployment
 **Goal**: The team can deploy the service to Fly.io + MongoDB Atlas using documented steps with no manual config guesswork
