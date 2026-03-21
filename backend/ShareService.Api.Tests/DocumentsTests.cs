@@ -67,7 +67,7 @@ public class DocumentsTests : IDisposable
         Assert.False(string.IsNullOrEmpty(id));
 
         var url = json.RootElement.GetProperty("url").GetString();
-        Assert.Contains($"/documents/{id}", url);
+        Assert.Contains($"/viewer/{id}", url);
 
         Assert.True(json.RootElement.TryGetProperty("createdAt", out _));
     }
