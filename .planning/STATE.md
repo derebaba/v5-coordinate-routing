@@ -10,27 +10,27 @@ See: .planning/PROJECT.md (updated 2026-03-21)
 ## Current Position
 
 Phase: 1 of 4 (Foundation)
-Plan: 0 of TBD in current phase
-Status: Ready to plan
-Last activity: 2026-03-21 — Roadmap created; all 19 v1 requirements mapped across 4 phases
+Plan: 1 of 2 in current phase
+Status: In progress
+Last activity: 2026-03-21 — Completed 01-01-PLAN: API scaffold with fail-fast config and health endpoint
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [█░░░░░░░░░] 10%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 0
-- Average duration: —
-- Total execution time: —
+- Total plans completed: 1
+- Average duration: 3m
+- Total execution time: 3m
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| - | - | - | - |
+| 1. Foundation | 1 | 3m | 3m |
 
 **Recent Trend:**
-- Last 5 plans: —
+- Last 5 plans: 3m
 - Trend: —
 
 *Updated after each plan completion*
@@ -48,6 +48,9 @@ Recent decisions affecting current work:
 - Roadmap: Preserve `routeCache` in stored documents — shared payloads should keep cached routing data intact
 - Roadmap: Fly.io + MongoDB Atlas M0 as free hosting target — persistent VMs, no spin-down
 - Roadmap: Viewer page is v1 (Phase 3), not deferred — improves recipient experience
+- 01-01: Require() helper throws InvalidOperationException for missing env vars — fail-fast at startup
+- 01-01: InternalsVisibleTo for WebApplicationFactory access — standard .NET testing pattern
+- 01-01: Mongo2Go for ephemeral MongoDB in tests — no Docker dependency for CI
 
 ### Pending Todos
 
@@ -60,5 +63,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-21
-Stopped at: Roadmap and STATE initialized; ready to plan Phase 1
+Stopped at: Completed 01-01-PLAN.md — API scaffold with fail-fast config
 Resume file: None
