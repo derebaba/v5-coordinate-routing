@@ -12,15 +12,15 @@ public class ConfigTests
         var factory = new WebApplicationFactory<Program>()
             .WithWebHostBuilder(builder =>
             {
-                builder.UseSetting("Mongo__ConnectionString", "mongodb://localhost:27017");
-                builder.UseSetting("Mongo__DatabaseName", "test-db");
-                // Auth__JwtSecret intentionally omitted
-                builder.UseSetting("Cors__AllowedOrigins", "http://localhost:3000");
+                builder.UseSetting("Mongo:ConnectionString", "mongodb://localhost:27017");
+                builder.UseSetting("Mongo:DatabaseName", "test-db");
+                // Auth:JwtSecret intentionally omitted
+                builder.UseSetting("Cors:AllowedOrigins", "http://localhost:3000");
             });
 
         // Assert
         var ex = Assert.Throws<InvalidOperationException>(() => factory.CreateClient());
-        Assert.Contains("Missing required config: Auth__JwtSecret", ex.Message);
+        Assert.Contains("Missing required config: Auth:JwtSecret", ex.Message);
     }
 
     [Fact]
@@ -30,14 +30,14 @@ public class ConfigTests
         var factory = new WebApplicationFactory<Program>()
             .WithWebHostBuilder(builder =>
             {
-                builder.UseSetting("Mongo__ConnectionString", "mongodb://localhost:27017");
-                builder.UseSetting("Mongo__DatabaseName", "test-db");
-                builder.UseSetting("Auth__JwtSecret", "test-secret-at-least-32-characters-long!");
-                // Cors__AllowedOrigins intentionally omitted
+                builder.UseSetting("Mongo:ConnectionString", "mongodb://localhost:27017");
+                builder.UseSetting("Mongo:DatabaseName", "test-db");
+                builder.UseSetting("Auth:JwtSecret", "test-secret-at-least-32-characters-long!");
+                // Cors:AllowedOrigins intentionally omitted
             });
 
         // Assert
         var ex = Assert.Throws<InvalidOperationException>(() => factory.CreateClient());
-        Assert.Contains("Missing required config: Cors__AllowedOrigins", ex.Message);
+        Assert.Contains("Missing required config: Cors:AllowedOrigins", ex.Message);
     }
 }

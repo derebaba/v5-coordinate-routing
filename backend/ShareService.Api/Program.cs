@@ -11,10 +11,10 @@ string Require(string key)
     return value;
 }
 
-var mongoConnectionString = Require("Mongo__ConnectionString");
-var mongoDatabaseName = Require("Mongo__DatabaseName");
-var jwtSecret = Require("Auth__JwtSecret");
-var allowedOriginsRaw = Require("Cors__AllowedOrigins");
+var mongoConnectionString = Require("Mongo:ConnectionString");
+var mongoDatabaseName = Require("Mongo:DatabaseName");
+var jwtSecret = Require("Auth:JwtSecret");
+var allowedOriginsRaw = Require("Cors:AllowedOrigins");
 
 var allowedOrigins = allowedOriginsRaw
     .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);

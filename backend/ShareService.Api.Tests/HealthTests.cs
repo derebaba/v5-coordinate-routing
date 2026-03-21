@@ -27,10 +27,10 @@ public class HealthTests : IDisposable
         var factory = new WebApplicationFactory<Program>()
             .WithWebHostBuilder(builder =>
             {
-                builder.UseSetting("Mongo__ConnectionString", _mongoRunner.ConnectionString);
-                builder.UseSetting("Mongo__DatabaseName", "test-db");
-                builder.UseSetting("Auth__JwtSecret", "test-secret-at-least-32-characters-long!");
-                builder.UseSetting("Cors__AllowedOrigins", "http://localhost:3000");
+                builder.UseSetting("Mongo:ConnectionString", _mongoRunner.ConnectionString);
+                builder.UseSetting("Mongo:DatabaseName", "test-db");
+                builder.UseSetting("Auth:JwtSecret", "test-secret-at-least-32-characters-long!");
+                builder.UseSetting("Cors:AllowedOrigins", "http://localhost:3000");
             });
 
         var client = factory.CreateClient();
