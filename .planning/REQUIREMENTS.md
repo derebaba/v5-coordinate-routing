@@ -33,8 +33,8 @@
 
 ### Operations
 
-- [ ] **OPS-01**: Team can start the full stack locally with Docker
-- [ ] **OPS-02**: Local Docker setup persists database data across restarts
+- [x] **OPS-01**: Team can start the full stack locally with Docker
+- [x] **OPS-02**: Local Docker setup persists database data across restarts
 - [x] **OPS-03**: Project includes environment-based configuration for secrets and allowed origins
 - [ ] **OPS-04**: Project includes deployment-ready configuration for a free hosting target
 - [ ] **OPS-05**: Project documents the selected free hosting target and how to deploy to it
@@ -83,8 +83,8 @@
 | VIEW-01 | Phase 3 | Pending |
 | VIEW-02 | Phase 3 | Pending |
 | VIEW-03 | Phase 3 | Pending |
-| OPS-01 | Phase 1 | Pending |
-| OPS-02 | Phase 1 | Pending |
+| OPS-01 | Phase 1 | Complete |
+| OPS-02 | Phase 1 | Complete |
 | OPS-03 | Phase 1 | Complete |
 | OPS-04 | Phase 4 | Pending |
 | OPS-05 | Phase 4 | Pending |
