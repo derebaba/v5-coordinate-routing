@@ -1,18 +1,18 @@
 # flyctl launch added from .gitignore
 # Environment secrets
-**\.env
+**/.env
 
 # .NET build artifacts
-**\backend\**\bin
-**\backend\**\obj
+**/backend/**/bin
+**/backend/**/obj
 
 # OS files
-**\.DS_Store
-**\Thumbs.db
+**/.DS_Store
+**/Thumbs.db
 
 # IDE
-**\.vs
-**\.vscode
-**\*.user
-**\*.suo
+**/.vs
+**/.vscode
+**/*.user
+**/*.suo
 fly.toml
