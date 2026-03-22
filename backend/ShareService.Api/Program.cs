@@ -48,7 +48,14 @@ var app = builder.Build();
 app.UseCors("Frontend");
 app.UseStaticFiles();
 
-app.MapGet("/", () => Results.Redirect("/index.html", permanent: false));
+app.MapGet("/", async (IWebHostEnvironment env) =>
+{
+    var filePath = Path.Combine(env.WebRootPath, "index.html");
+    if (!File.Exists(filePath))
+        return Results.NotFound();
+    var html = await File.ReadAllTextAsync(filePath);
+    return Results.Content(html, "text/html");
+});
 
 bool IsAuthorized(HttpContext ctx)
 {
