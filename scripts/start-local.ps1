@@ -13,9 +13,8 @@ if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
 }
 
 # Check if Docker daemon is running
-try {
-    docker ps -q > $null 2>&1
-} catch {
+& docker info --format "{{.ServerVersion}}" *> $null
+if ($LASTEXITCODE -ne 0) {
     throw "Docker is not running. Start Docker Desktop and try again."
 }
 

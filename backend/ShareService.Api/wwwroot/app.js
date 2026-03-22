@@ -240,8 +240,10 @@ function bindEvents() {
   el.dayVerificationBody.addEventListener("change", onDayVerificationChange);
   el.exportJson.addEventListener("click", onExportJson);
   el.uploadToApi.addEventListener("click", onUploadToApi);
-  el.apiJwtToken.value = localStorage.getItem("api_jwt_token") || "";
-  el.apiJwtToken.addEventListener("change", () => localStorage.setItem("api_jwt_token", el.apiJwtToken.value.trim()));
+  if (el.apiJwtToken) {
+    el.apiJwtToken.value = localStorage.getItem("api_jwt_token") || "";
+    el.apiJwtToken.addEventListener("change", () => localStorage.setItem("api_jwt_token", el.apiJwtToken.value.trim()));
+  }
   el.importJsonInput.addEventListener("change", onImportJson);
   if (el.cleanupSessions) {
     el.cleanupSessions.addEventListener("click", onCleanupSessions);
@@ -5831,7 +5833,8 @@ function onExportJson() {
 
 async function onUploadToApi() {
   const baseUrl = resolveApiBaseUrl();
-  const token = (el.apiJwtToken.value || localStorage.getItem("api_jwt_token") || "").trim();
+  const jwtInput = el.apiJwtToken || document.getElementById("api-jwt-token");
+  const token = ((jwtInput && jwtInput.value) || localStorage.getItem("api_jwt_token") || "").trim();
   const status = el.uploadToApiStatus;
 
   if (!token) {

@@ -48,6 +48,8 @@ var app = builder.Build();
 app.UseCors("Frontend");
 app.UseStaticFiles();
 
+app.MapGet("/", () => Results.Redirect("/index.html", permanent: false));
+
 bool IsAuthorized(HttpContext ctx)
 {
     var header = ctx.Request.Headers.Authorization.ToString();
