@@ -1,6 +1,4 @@
-const LEGACY_STORAGE_KEY = "fieldwork-scheduler-v1";
-const STORAGE_PREFIX = "fieldwork-scheduler-v3";
-const PENDING_IMPORT_PREFIX = "fieldwork-scheduler-pending-import-v3";
+
 
 function getEditModeFromUrl() {
   const match = window.location.pathname.match(/^\/edit\/([^/]+)$/);
@@ -14,7 +12,6 @@ const ROUTE_CACHE_DB_VERSION = 2;
 const ROUTE_CACHE_STORE = "routeCache";
 
 const SESSION_ID = getSessionIdFromUrl();
-const STORAGE_KEY = `${STORAGE_PREFIX}:${SESSION_ID}`;
 
 const state = loadState();
 initializeStateProxies(state);
@@ -154,8 +151,7 @@ const el = {
   uploadToApi: document.getElementById("upload-to-api"),
   uploadToApiStatus: document.getElementById("upload-to-api-status"),
   apiJwtToken: document.getElementById("api-jwt-token"),
-  importJsonInput: document.getElementById("import-json-input"),
-  cleanupSessions: document.getElementById("cleanup-sessions")
+  importJsonInput: document.getElementById("import-json-input")
 };
 
 let googleMapsSdkPromise = null;
@@ -169,7 +165,6 @@ renderRouteCacheStatus();
 renderRouteBuilderStatus();
 uiState.mainView = "city-setup";
 renderAll();
-applyPendingImportIfExists();
 bootstrapRouteCachePersistence();
 if (EDIT_MODE) {
   loadEditDocumentIfNeeded();
@@ -246,9 +241,6 @@ function bindEvents() {
     el.apiJwtToken.addEventListener("change", () => localStorage.setItem("api_jwt_token", el.apiJwtToken.value.trim()));
   }
   el.importJsonInput.addEventListener("change", onImportJson);
-  if (el.cleanupSessions) {
-    el.cleanupSessions.addEventListener("click", onCleanupSessions);
-  }
   if (el.progressModeToggle) {
     el.progressModeToggle.addEventListener("click", onProgressModeToggle);
   }
@@ -395,10 +387,6 @@ function buildSessionUrl(sessionId) {
   const url = new URL(window.location.href);
   url.searchParams.set("session", sessionId);
   return url.toString();
-}
-
-function getPendingImportKey(sessionId) {
-  return `${PENDING_IMPORT_PREFIX}:${sessionId}`;
 }
 
 function renderSessionBadge() {
@@ -767,7 +755,6 @@ async function bootstrapRouteCachePersistence() {
         await replaceRouteCacheForCityInDb(city.id, city.routeCache);
       }
     }
-    saveState();
     renderRouteCacheStatus();
   } catch (error) {
     console.error("Route cache database bootstrap failed", error);
@@ -921,26 +908,7 @@ function onCitySetupProgressClick(event) {
 }
 
 function loadState() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-
-    if (!raw && SESSION_ID === "default") {
-      const legacyRaw = localStorage.getItem(LEGACY_STORAGE_KEY);
-      if (legacyRaw) {
-        localStorage.setItem(STORAGE_KEY, legacyRaw);
-      }
-    }
-
-    const activeRaw = localStorage.getItem(STORAGE_KEY);
-    if (!activeRaw) {
-      return normalizeState({});
-    }
-
-    return normalizeState(JSON.parse(activeRaw));
-  } catch (error) {
-    console.error("Failed to parse state", error);
-    return normalizeState({});
-  }
+  return normalizeState({});
 }
 
 function normalizeState(parsed) {
@@ -1120,19 +1088,6 @@ function normalizeState(parsed) {
   };
 }
 
-function saveState() {
-  state.schemaVersion = SCHEMA_VERSION;
-  const payload = {
-    schemaVersion: state.schemaVersion,
-    selectedCityId: state.selectedCityId,
-    cities: (Array.isArray(state.cities) ? state.cities : []).map((city) => ({
-      ...city,
-      routeCache: []
-    }))
-  };
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
-}
-
 function replaceState(nextState) {
   state.schemaVersion = nextState.schemaVersion;
   state.selectedCityId = nextState.selectedCityId || "";
@@ -1250,11 +1205,10 @@ function onAddCity() {
   state.selectedCityId = city.id;
   uiState.mainView = "city-setup";
   resetCityScopedUiForSwitch();
-  saveState();
   renderAll();
 }
 
-function onRenameCity() {
+function onRenameCity(){
   const city = getCurrentCity();
   if (!city) {
     return;
@@ -1269,11 +1223,10 @@ function onRenameCity() {
     return;
   }
   city.name = name;
-  saveState();
   renderAll();
 }
 
-async function onDeleteCity() {
+async function onDeleteCity(){
   const city = getCurrentCity();
   if (!city) {
     return;
@@ -1295,7 +1248,6 @@ async function onDeleteCity() {
     }
   }
   resetCityScopedUiForSwitch();
-  saveState();
   renderAll();
 }
 
@@ -1315,7 +1267,6 @@ async function onCreateFirstCity(event) {
   state.cities = [...(state.cities || []), city];
   state.selectedCityId = city.id;
   uiState.mainView = "city-setup";
-  saveState();
   try {
     const file = el.cityCreateFile?.files?.[0];
     if (file) {
@@ -1329,7 +1280,6 @@ async function onCreateFirstCity(event) {
         renderSchoolsImportStatus();
       }
     } else {
-      saveState();
       renderAll();
     }
     if (el.cityCreateName) {
@@ -1749,7 +1699,6 @@ async function onSchoolEditSubmit(event) {
     ));
   }
 
-  saveState();
   closeSchoolEditor();
   renderAll();
 }
@@ -1784,7 +1733,6 @@ async function onDeleteSchool(event) {
       id
     ));
   }
-  saveState();
   renderAll();
 }
 
@@ -2408,7 +2356,6 @@ function onResearcherSubmit(event) {
     state.researchers.push({ id: generateId("researcher"), ...payload });
   }
 
-  saveState();
   resetResearcherForm();
   renderAll();
 }
@@ -2436,7 +2383,6 @@ function onResearcherTableAction(event) {
 
   if (action === "toggle-researcher") {
     researcher.active = !researcher.active;
-    saveState();
     renderAll();
     return;
   }
@@ -2446,7 +2392,6 @@ function onResearcherTableAction(event) {
       return;
     }
     state.researchers = state.researchers.filter((item) => item.id !== id);
-    saveState();
     renderAll();
   }
 }
@@ -2589,7 +2534,6 @@ function onDayPlanSubmit(event) {
     uiState.selectedDayIdsByCity[cityId] = addedIds[0];
     uiState.selectedVerificationDayIdsByCity[cityId] = addedIds[0];
   }
-  saveState();
   resetDayPlanForm();
   renderAll();
 }
@@ -2649,12 +2593,11 @@ function onDayPlanTableAction(event) {
       }
     }
 
-    saveState();
     renderAll();
   }
 }
 
-function resetDayPlanForm() {
+function resetDayPlanForm(){
   el.dayPlanForm.reset();
   const weekdayBoxes = el.dayPlanWeekdays.querySelectorAll("input[type='checkbox']");
   weekdayBoxes.forEach((box) => {
@@ -3151,7 +3094,6 @@ function onDayVerificationSave() {
     .filter((item) => item.dayId !== selectedVerificationDayId)
     .concat(nextRows);
   dayPlan.verificationLocked = true;
-  saveState();
   renderAll();
   alert("Day verification saved. School statuses updated.");
 }
@@ -3172,7 +3114,6 @@ function onDayVerificationEdit() {
     return;
   }
   dayPlan.verificationLocked = false;
-  saveState();
   renderAll();
   alert("Verification unlocked. You can edit and save again.");
 }
@@ -3196,7 +3137,6 @@ function onPlannerEdit() {
   }
 
   dayPlan.locked = false;
-  saveState();
   renderAll();
   alert("Day plan unlocked. You can now adjust assignments and save again.");
 }
@@ -4551,7 +4491,6 @@ function onPlannerSave() {
   ));
   delete uiState.plannerDraftCache[getPlannerDraftCacheKey(draft.dayId)];
 
-  saveState();
   loadPlannerDraft(draft.dayId);
   renderAll();
 
@@ -5048,7 +4987,6 @@ function importSchoolsFromRows(rows) {
   }
 
   if (imported > 0) {
-    saveState();
     renderAll();
   }
 
@@ -5156,48 +5094,6 @@ async function onSchoolsFileImport(event) {
     alert(`Could not import file. Check format and try again.${detail}`);
   } finally {
     event.target.value = "";
-  }
-}
-
-function applyPendingImportIfExists() {
-  if (!getCurrentCity()) {
-    return;
-  }
-  const key = getPendingImportKey(SESSION_ID);
-  const raw = localStorage.getItem(key);
-  if (!raw) {
-    return;
-  }
-
-  localStorage.removeItem(key);
-
-  try {
-    const parsed = JSON.parse(raw);
-    const rows = Array.isArray(parsed.rows) ? parsed.rows : null;
-    if (!rows) {
-      alert("Pending import payload is invalid.");
-      return;
-    }
-
-    const result = importSchoolsFromRows(rows);
-    if (result !== null) {
-      const source = parsed.sourceFileName ? ` from "${parsed.sourceFileName}"` : "";
-      const summary = buildSchoolImportSummary(result, `${getCurrentCity()?.name || "current city"}${source}`);
-      uiState.schoolsImportStatus = {
-        message: summary,
-        tone: "success"
-      };
-      renderSchoolsImportStatus();
-      alert(summary);
-    }
-  } catch (error) {
-    console.error(error);
-    uiState.schoolsImportStatus = {
-      message: "Could not apply pending import in this session.",
-      tone: "error"
-    };
-    renderSchoolsImportStatus();
-    alert("Could not apply pending import in this session.");
   }
 }
 
@@ -5813,7 +5709,6 @@ async function mergeRouteCacheEntries(entries) {
     upsertRouteCacheEntry(entry);
   });
   await replaceRouteCacheForCityInDb(getCurrentCity()?.id || "", state.routeCache);
-  saveState();
   return entries.length;
 }
 
@@ -5909,7 +5804,6 @@ async function onImportJson(event) {
     for (const city of state.cities || []) {
       await replaceRouteCacheForCityInDb(city.id, city.routeCache || []);
     }
-    saveState();
 
     uiState.selectedDayId = "";
     uiState.selectedVerificationDayId = "";
@@ -5951,7 +5845,6 @@ async function loadEditDocumentIfNeeded() {
     for (const city of state.cities || []) {
       await replaceRouteCacheForCityInDb(city.id, city.routeCache || []);
     }
-    saveState();
 
     uiState.selectedDayId = "";
     uiState.selectedVerificationDayId = "";
@@ -5971,30 +5864,6 @@ async function loadEditDocumentIfNeeded() {
     console.error(err);
     alert("Could not load shared document. Check your connection and try again.");
   }
-}
-
-function onCleanupSessions() {
-  const shouldProceed = confirm("Delete old saved sessions from browser storage? Current session will be kept.");
-  if (!shouldProceed) {
-    return;
-  }
-
-  const keepKeys = new Set([STORAGE_KEY, getPendingImportKey(SESSION_ID)]);
-  const keysToDelete = [];
-  for (let i = 0; i < localStorage.length; i += 1) {
-    const key = localStorage.key(i);
-    if (!key) {
-      continue;
-    }
-    const isSessionKey = key.startsWith(`${STORAGE_PREFIX}:`);
-    const isPendingKey = key.startsWith(`${PENDING_IMPORT_PREFIX}:`);
-    if ((isSessionKey || isPendingKey) && !keepKeys.has(key)) {
-      keysToDelete.push(key);
-    }
-  }
-
-  keysToDelete.forEach((key) => localStorage.removeItem(key));
-  alert(`Cleaned ${keysToDelete.length} old storage item(s).`);
 }
 
 function formatDate(value) {
