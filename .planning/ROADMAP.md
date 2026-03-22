@@ -86,7 +86,10 @@ Plans:
   1. Project contains a `fly.toml` (or equivalent) that deploys the .NET API container to Fly.io after setting secrets — no manual edits required beyond secret values
   2. README documents exactly how to generate a JWT token, configure the Atlas connection string, and run `fly deploy` end-to-end
   3. Production CORS configuration points to the Fly.io domain via an environment variable set at deploy time
-**Plans**: TBD
+**Plans**: 1 plan
+
+Plans:
+- [ ] `04-01-PLAN.md` — Fly deployment manifest, verification script, and zero-to-deploy README runbook
 
 ## Progress
 
