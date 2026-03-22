@@ -15,7 +15,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [ ] **Phase 1: Foundation** - Docker + .NET scaffold with secret hygiene and MongoDB volume in place
 - [ ] **Phase 2: Core API** - Upload, public read, and replace endpoints live behind JWT-guarded write auth
 - [ ] **Phase 3: Frontend + Viewer** - Shareable URL displayed after upload; formatted viewer page for recipients
-- [ ] **Phase 4: Deployment** - Fly.io + Atlas deployment config and documentation ready to use
+- [x] **Phase 4: Deployment** - Fly.io + Atlas deployment config and documentation ready to use (completed 2026-03-22)
 
 ## Phase Details
 
@@ -101,4 +101,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | 1. Foundation | 2/2 | Complete | 2026-03-21 |
 | 2. Core API | 1/1 | Complete | 2026-03-21 |
 | 3. Frontend + Viewer | 2/2 | Complete | 2026-03-21 |
-| 4. Deployment | 0/TBD | Not started | - |
+| 4. Deployment | 1/1 | Complete   | 2026-03-22 |

@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: in_progress
-stopped_at: Completed 04-01-PLAN.md
-last_updated: "2026-03-22T08:49:07.982Z"
+stopped_at: Completed 04-deployment-01-PLAN.md
+last_updated: "2026-03-22T08:49:41.412Z"
 last_activity: "2026-03-21 — Completed 03.1-02-PLAN: Editable sharing frontend edit/load/save flow"
 progress:
   total_phases: 5
   completed_phases: 4
   total_plans: 9
-  completed_plans: 8
+  completed_plans: 9
 ---
 
 ---
@@ -71,6 +71,7 @@ Progress: [█████████░] 88%
 | Phase 03-frontend-viewer P02 | 3m | 2 tasks | 2 files |
 | Phase 03.1-editable-sharing P01 | 36m | 2 tasks | 2 files |
 | Phase 03.1-editable-sharing P02 | 8m | 2 tasks | 1 files |
+| Phase 04-deployment P01 | 23m | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -100,6 +101,8 @@ Recent decisions affecting current work:
 - [Phase 03.1-editable-sharing]: Dockerfile copies frontend assets after API source copy so real index/app/styles overwrite test stub before publish.
 - [Phase 03.1-editable-sharing]: Use window.location.origin for edit-mode API base URL to avoid manual endpoint entry.
 - [Phase 03.1-editable-sharing]: Use deterministic edit_{documentId} session IDs to isolate shared-edit state from local sessions.
+- [Phase 04-deployment]: Kept Fly config always-on (auto_stop_machines=false, min_machines_running=1) to match v1 deployment behavior.
+- [Phase 04-deployment]: Deployment verification includes both /health and authenticated POST /documents checks via scripts/verify-deploy.ps1.
 
 ### Roadmap Evolution
 
@@ -115,6 +118,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-22T08:49:07.978Z
-Stopped at: Completed 04-01-PLAN.md
+Last session: 2026-03-22T08:49:41.409Z
+Stopped at: Completed 04-deployment-01-PLAN.md
 Resume file: None

@@ -36,8 +36,8 @@
 - [x] **OPS-01**: Team can start the full stack locally with Docker
 - [x] **OPS-02**: Local Docker setup persists database data across restarts
 - [x] **OPS-03**: Project includes environment-based configuration for secrets and allowed origins
-- [ ] **OPS-04**: Project includes deployment-ready configuration for a free hosting target
-- [ ] **OPS-05**: Project documents the selected free hosting target and how to deploy to it
+- [x] **OPS-04**: Project includes deployment-ready configuration for a free hosting target
+- [x] **OPS-05**: Project documents the selected free hosting target and how to deploy to it
 
 ## v2 Requirements
 
@@ -86,8 +86,8 @@
 | OPS-01 | Phase 1 | Complete |
 | OPS-02 | Phase 1 | Complete |
 | OPS-03 | Phase 1 | Complete |
-| OPS-04 | Phase 4 | Pending |
-| OPS-05 | Phase 4 | Pending |
+| OPS-04 | Phase 4 | Complete |
+| OPS-05 | Phase 4 | Complete |
 
 **Coverage:**
 - v1 requirements: 19 total
