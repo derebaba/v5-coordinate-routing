@@ -1,0 +1,532 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fieldwork Scheduler Info Sheet</title>
+  <style>
+    :root {
+      --bg: #eef4ea;
+      --panel: #ffffff;
+      --line: #cfdccd;
+      --text: #203025;
+      --muted: #5d6b60;
+      --green: #1e7a46;
+      --green-soft: #e7f6eb;
+      --red: #a63d2f;
+      --red-soft: #fff1ec;
+      --blue: #2f627f;
+      --blue-soft: #edf5fb;
+      --gold: #8a6a1f;
+      --gold-soft: #fff8e7;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      color: var(--text);
+      background: linear-gradient(160deg, #ecf4e7 0%, #f5f9f4 100%);
+    }
+
+    .sheet {
+      width: max(1600px, 100vw);
+      min-height: 100vh;
+      padding: 18px;
+      display: grid;
+      gap: 14px;
+    }
+
+    .hero {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 18px 22px;
+      box-shadow: 0 10px 22px rgba(20, 35, 24, 0.06);
+    }
+
+    .hero h1 {
+      margin: 0;
+      font-size: 2rem;
+    }
+
+    .hero p {
+      margin: 8px 0 0;
+      color: var(--muted);
+      max-width: 1100px;
+      font-size: 1rem;
+    }
+
+    .top-grid {
+      display: grid;
+      grid-template-columns: 1.15fr 1.1fr 1fr;
+      gap: 14px;
+      align-items: stretch;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 16px;
+      box-shadow: 0 10px 22px rgba(20, 35, 24, 0.05);
+    }
+
+    .panel h2 {
+      margin: 0 0 10px;
+      font-size: 1.15rem;
+    }
+
+    .panel h3 {
+      margin: 14px 0 8px;
+      font-size: 0.98rem;
+    }
+
+    .small {
+      color: var(--muted);
+      font-size: 0.9rem;
+      line-height: 1.45;
+    }
+
+    .flow-strip {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr auto 1fr;
+      gap: 10px;
+      align-items: center;
+      margin-top: 8px;
+    }
+
+    .flow-step {
+      border-radius: 14px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      background: #fbfdfb;
+      min-height: 120px;
+    }
+
+    .flow-step.main {
+      background: var(--blue-soft);
+      border-color: #bfd3e1;
+    }
+
+    .flow-step.setup {
+      background: var(--gold-soft);
+      border-color: #e2d2a2;
+    }
+
+    .flow-step.ops {
+      background: var(--green-soft);
+      border-color: #b9d8c2;
+    }
+
+    .arrow {
+      text-align: center;
+      font-size: 1.5rem;
+      color: #6d7b70;
+      font-weight: 700;
+    }
+
+    .tag-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .tag {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 4px 9px;
+      font-size: 0.8rem;
+      background: #f7faf7;
+    }
+
+    .stores {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+
+    .store {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 12px;
+      background: #fcfefc;
+    }
+
+    .store h3 {
+      margin-top: 0;
+    }
+
+    .chip-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 8px;
+    }
+
+    .chip {
+      border-radius: 999px;
+      padding: 4px 8px;
+      font-size: 0.78rem;
+      border: 1px solid #cfdccd;
+      background: #f7faf7;
+    }
+
+    .chip.green {
+      background: var(--green-soft);
+      border-color: #b9d8c2;
+    }
+
+    .chip.red {
+      background: var(--red-soft);
+      border-color: #e7b7ad;
+    }
+
+    .chip.blue {
+      background: var(--blue-soft);
+      border-color: #bfd3e1;
+    }
+
+    .mid-grid {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr;
+      gap: 14px;
+    }
+
+    .rule-list,
+    .step-list {
+      margin: 8px 0 0;
+      padding-left: 18px;
+      line-height: 1.5;
+    }
+
+    .rule-list li,
+    .step-list li {
+      margin-bottom: 7px;
+    }
+
+    .update-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 8px;
+      font-size: 0.9rem;
+    }
+
+    .update-table th,
+    .update-table td {
+      border: 1px solid #dbe5d9;
+      padding: 8px 9px;
+      vertical-align: top;
+    }
+
+    .update-table th {
+      background: #f4f9f3;
+      text-align: left;
+    }
+
+    .bottom-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 14px;
+    }
+
+    .legend-box {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 12px;
+      background: #fbfdfb;
+    }
+
+    .legend-row {
+      display: grid;
+      grid-template-columns: 120px 1fr;
+      gap: 8px;
+      align-items: start;
+      margin-bottom: 8px;
+    }
+
+    .status-pill {
+      display: inline-block;
+      padding: 5px 8px;
+      border-radius: 999px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      border: 1px solid transparent;
+    }
+
+    .status-pill.scheduled {
+      color: #2f627f;
+      background: #edf5fb;
+      border-color: #bfd3e1;
+    }
+
+    .status-pill.completed {
+      color: #22573b;
+      background: #e7f6eb;
+      border-color: #b9d8c2;
+    }
+
+    .status-pill.incomplete {
+      color: #8a2e1f;
+      background: #fff1ec;
+      border-color: #e7b7ad;
+    }
+
+    .status-pill.not-scheduled {
+      color: #526156;
+      background: #f5f7f5;
+      border-color: #d5dfd2;
+    }
+
+    .footer {
+      color: var(--muted);
+      font-size: 0.82rem;
+      text-align: right;
+    }
+
+    @media print {
+      @page {
+        size: A3 landscape;
+        margin: 10mm;
+      }
+
+      body {
+        background: #fff;
+      }
+
+      .sheet {
+        width: auto;
+        min-height: auto;
+        padding: 0;
+      }
+
+      .panel,
+      .hero {
+        box-shadow: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="sheet">
+    <section class="hero">
+      <h1>Fieldwork Scheduler: Data Flow Map</h1>
+      <p>This one-page guide explains how the app is structured, what each page controls, and how school, planning, route, and verification data update each other. It is written for daily use by the fieldwork team, not only for technical maintenance.</p>
+    </section>
+
+    <section class="top-grid">
+      <div class="panel">
+        <h2>1. App Map</h2>
+        <div class="flow-strip">
+          <div class="flow-step main">
+            <strong>Main Setup</strong>
+            <p class="small">Global session tasks. Restore a JSON backup. Create city tabs.</p>
+          </div>
+          <div class="arrow">→</div>
+          <div class="flow-step setup">
+            <strong>City Setup</strong>
+            <p class="small">Load schools, build/import route cache, add working days, add researchers, export backup.</p>
+          </div>
+          <div class="arrow">→</div>
+          <div class="flow-step ops">
+            <strong>Operations</strong>
+            <p class="small">Track progress, edit school records, build daily plans, print the day sheet, verify outcomes.</p>
+          </div>
+        </div>
+        <div class="tag-row">
+          <span class="tag">Cities are separate workspaces</span>
+          <span class="tag">Each city keeps its own schools and route cache</span>
+          <span class="tag">Switching city switches the full database view</span>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>2. Main Stored Data</h2>
+        <div class="stores">
+          <div class="store">
+            <h3>School Data</h3>
+            <div class="chip-list">
+              <span class="chip">name</span>
+              <span class="chip">district</span>
+              <span class="chip">schoolType</span>
+              <span class="chip">lectureDuration</span>
+              <span class="chip">classroomCount</span>
+              <span class="chip">classroomList</span>
+              <span class="chip">lat/lng</span>
+              <span class="chip">manualStatus</span>
+            </div>
+          </div>
+          <div class="store">
+            <h3>Planning Data</h3>
+            <div class="chip-list">
+              <span class="chip blue">researchers</span>
+              <span class="chip blue">dayPlans</span>
+              <span class="chip blue">researcherAssignments</span>
+              <span class="chip blue">notes</span>
+              <span class="chip blue">sarmal</span>
+            </div>
+          </div>
+          <div class="store">
+            <h3>Outcome Data</h3>
+            <div class="chip-list">
+              <span class="chip green">dayVerifications</span>
+              <span class="chip green">routeCache</span>
+              <span class="chip green">printed day reports</span>
+              <span class="chip green">district progress</span>
+            </div>
+          </div>
+        </div>
+        <p class="small">Within each city, the app reads from the same shared data source. This is why one change in school data can immediately affect planner dropdowns, progress counts, and printed reports.</p>
+      </div>
+
+      <div class="panel">
+        <h2>3. City Setup Progress Strip</h2>
+        <ol class="step-list">
+          <li><strong>Schools Imported</strong>: required before operations can start.</li>
+          <li><strong>Distance Cache</strong>: optional for planning, but required if drive-time hints are needed.</li>
+          <li><strong>Working Days</strong>: required before daily planning.</li>
+          <li><strong>Researchers</strong>: required before assignments can be made.</li>
+        </ol>
+        <div class="chip-list">
+          <span class="chip green">Green = done</span>
+          <span class="chip red">Red = not yet done</span>
+          <span class="chip blue">Click a step to jump to that section</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="mid-grid">
+      <div class="panel">
+        <h2>4. Data Update Rules</h2>
+        <table class="update-table">
+          <thead>
+            <tr>
+              <th>Action</th>
+              <th>What gets updated</th>
+              <th>What you see change next</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Import schools in City Setup</td>
+              <td>The current city's school database is created or extended.</td>
+              <td>Schools list, planner dropdowns, progress table, route builder school set.</td>
+            </tr>
+            <tr>
+              <td>Edit school details in Operations</td>
+              <td>The school record itself changes.</td>
+              <td>School table, planner row details, printed day report, progress grouping, route builder readiness.</td>
+            </tr>
+            <tr>
+              <td>Edit school coordinates</td>
+              <td>The school's `latitude/longitude` values change and cached routes for that school are cleared.</td>
+              <td>Route hints may disappear until the route cache is rebuilt or re-imported.</td>
+            </tr>
+            <tr>
+              <td>Set manual school status</td>
+              <td>The school's manual status override becomes the first status source.</td>
+              <td>Status labels, school row colors, progress counts, planner availability behavior.</td>
+            </tr>
+            <tr>
+              <td>Save a day plan</td>
+              <td>Assignments move from draft into the city database.</td>
+              <td>School status can move to scheduled, remaining classrooms shrink, progress numbers increase.</td>
+            </tr>
+            <tr>
+              <td>Save day verification</td>
+              <td>The city's verification records are updated for that day and those schools.</td>
+              <td>School status becomes completed or incomplete, remaining classrooms and future scheduling update.</td>
+            </tr>
+            <tr>
+              <td>Import route cache</td>
+              <td>Stored drive times for school pairs are updated for the city.</td>
+              <td>Planner route hints become available without a live API connection.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="panel">
+        <h2>5. Planner Logic</h2>
+        <h3>Daily Planning</h3>
+        <ol class="step-list">
+          <li>Choose a day tab.</li>
+          <li>Available researchers appear as rows.</li>
+          <li>Select district first, then school.</li>
+          <li>The school row auto-fills working hours, lunch break, duration, max class size, and route hints.</li>
+          <li>Remaining classroom counts update live across all researchers in the same day.</li>
+          <li>Once saved, the day locks until `Edit` is used.</li>
+        </ol>
+        <h3>Capacity and Tablet Rules</h3>
+        <ul class="rule-list">
+          <li>A school disappears from the dropdown when its remaining classrooms reach zero.</li>
+          <li>Hard classroom capacity cannot be saved above the school's total classroom count.</li>
+          <li>Required tablets are computed per researcher, then the maximum relevant value is used for that researcher.</li>
+          <li>If `Sarmal` is checked for a row, that row's max class size is doubled before comparing it against the researcher's other assigned schools.</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="bottom-grid">
+      <div class="panel">
+        <h2>6. Status Hierarchy</h2>
+        <div class="legend-box">
+          <div class="legend-row">
+            <span class="status-pill completed">Completed</span>
+            <span class="small">Highest final state. School is treated as fully done. It should not need future scheduling.</span>
+          </div>
+          <div class="legend-row">
+            <span class="status-pill incomplete">Incomplete</span>
+            <span class="small">Some classrooms still remain. The school can appear again in future planning.</span>
+          </div>
+          <div class="legend-row">
+            <span class="status-pill scheduled">Scheduled</span>
+            <span class="small">The school appears in saved day plans, but has not yet been marked completed through verification or manual status.</span>
+          </div>
+          <div class="legend-row">
+            <span class="status-pill not-scheduled">Not scheduled</span>
+            <span class="small">No saved assignments yet, or a manual override reset the school back to unscheduled.</span>
+          </div>
+        </div>
+        <p class="small">If a manual status is set in the school editor, it overrides the automatic status calculation. If the status is left as `Automatic`, the app computes it from planning and verification data.</p>
+      </div>
+
+      <div class="panel">
+        <h2>7. Route Cache Flow</h2>
+        <ol class="step-list">
+          <li>School file includes `latitude` and `longitude`.</li>
+          <li>Distance Cache builder calculates or imports school-pair routes.</li>
+          <li>Those route rows are stored per city.</li>
+          <li>The planner reads cached routes only. It does not need a live API connection during normal use.</li>
+        </ol>
+        <div class="chip-list">
+          <span class="chip">Coordinates are the source of truth</span>
+          <span class="chip red">Changing coordinates clears route rows for that school</span>
+          <span class="chip green">Rebuild cache after coordinate edits</span>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>8. Practical Team Workflow</h2>
+        <ol class="step-list">
+          <li>Create or select the city tab.</li>
+          <li>Import school Excel in <strong>City Setup</strong>.</li>
+          <li>Build or import route cache if drive times are needed.</li>
+          <li>Add working days and researchers.</li>
+          <li>Use <strong>Operations</strong> daily for planning, printing, and end-of-day verification.</li>
+          <li>Edit school records from the schools list whenever details, coordinates, or status need manual correction.</li>
+          <li>Export JSON regularly as a backup of all cities.</li>
+        </ol>
+      </div>
+    </section>
+
+    <div class="footer">
+      Info sheet for `/Users/yusuf/Desktop/scheduler 2/v5-coordinate-routing/index.html`
+    </div>
+  </main>
+</body>
+</html>

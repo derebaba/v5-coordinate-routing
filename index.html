@@ -1,0 +1,516 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fieldwork Scheduler Prototype</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="container">
+    <header class="page-header">
+      <h1>Fieldwork Scheduler</h1>
+      <p>Manual-first planning for schools, daily researcher availability, and allocations.</p>
+      <div id="session-badge" class="session-badge"></div>
+      <div class="header-nav">
+        <div class="header-main-setup">
+          <button id="main-setup-button" class="sheet-tab active" data-view="main-setup" type="button">Main Setup</button>
+        </div>
+        <div class="header-city-row">
+          <div id="city-workspace-bar" class="city-workspace-bar" hidden>
+            <div id="city-tabs" class="sheet-tabs city-tabs"></div>
+          </div>
+          <div id="main-view-tabs" class="sheet-tabs header-secondary-tabs">
+            <button class="sheet-tab" data-view="city-setup" type="button">City Setup</button>
+            <button class="sheet-tab" data-view="operations" type="button">Operations</button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <section class="panel" id="panel-restore" data-view-section="main-setup">
+      <div class="panel-header">
+        <h2>Restore Session</h2>
+        <p>Import a JSON backup to continue from a previous session.</p>
+      </div>
+      <div class="actions">
+        <label class="file-input">
+          Import JSON
+          <input id="import-json-input" type="file" accept="application/json,.json">
+        </label>
+        <button id="cleanup-sessions" type="button" class="ghost">Clean Old Sessions</button>
+      </div>
+    </section>
+
+    <section class="panel" id="panel-city-data" data-view-section="main-setup">
+      <div class="panel-header">
+        <h2>Main Setup</h2>
+        <p>Create city tabs. School import and route configuration happen inside each city's setup page.</p>
+      </div>
+
+      <div class="setup-subsection">
+        <h3 class="panel-subheader">Create City Tab</h3>
+        <form id="city-create-form" class="grid-form city-create-form">
+          <label>
+            City Name
+            <input id="city-create-name" type="text" required placeholder="e.g. Gaziantep">
+          </label>
+          <label>
+            Schools File
+            <input id="city-create-file" type="file" accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
+          </label>
+          <div class="actions full-width city-create-actions">
+            <button id="city-create-submit" type="submit">Create City Tab</button>
+          </div>
+          <div class="actions full-width city-manage-actions">
+            <button id="city-rename" type="button" class="ghost">Rename Selected City</button>
+            <button id="city-delete" type="button" class="ghost">Delete Selected City</button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <section class="panel" id="panel-progress" data-view-section="operations">
+      <div class="panel-header">
+        <h2>District Progress</h2>
+        <p>Track district and school-type progress. Switch between scheduled and completed views.</p>
+        <div class="actions progress-actions">
+          <button id="progress-visibility-toggle" type="button" class="ghost">Show Statistics</button>
+          <button id="progress-mode-toggle" type="button" class="ghost">Show Completed Stats</button>
+        </div>
+      </div>
+      <div id="operations-warning-panel" class="follow-up-panel" hidden></div>
+      <div class="table-wrap" id="progress-table-wrap" hidden>
+        <table>
+          <thead>
+            <tr>
+              <th>District</th>
+              <th>School Type</th>
+              <th id="progress-schools-header">Schools (Scheduled/Total)</th>
+              <th id="progress-classrooms-header">Classrooms (Scheduled/Total)</th>
+            </tr>
+          </thead>
+          <tbody id="district-progress-body"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="panel" id="panel-schools" data-view-section="operations">
+      <div class="panel-header">
+        <h2>Schools</h2>
+        <div class="actions">
+          <button id="schools-list-toggle" type="button" class="ghost">Show School List</button>
+        </div>
+      </div>
+
+      <div class="table-wrap" id="schools-table-wrap" hidden>
+        <table>
+          <thead>
+            <tr>
+              <th><button class="sort-btn" data-sort-key="name" type="button">Name</button></th>
+              <th><button class="sort-btn" data-sort-key="district" type="button">District</button></th>
+              <th><button class="sort-btn" data-sort-key="schoolType" type="button">School Type</button></th>
+              <th><button class="sort-btn" data-sort-key="lectureDuration" type="button">Lecture Duration</button></th>
+              <th><button class="sort-btn" data-sort-key="workingHours" type="button">Working Hours</button></th>
+              <th><button class="sort-btn" data-sort-key="classroomCount" type="button">Classrooms</button></th>
+              <th><button class="sort-btn" data-sort-key="maxClassroomSize" type="button">Max Classroom Size</button></th>
+              <th><button class="sort-btn" data-sort-key="classroomList" type="button">Classroom List</button></th>
+              <th><button class="sort-btn" data-sort-key="status" type="button">Status</button></th>
+              <th><button class="sort-btn" data-sort-key="notes" type="button">Notes</button></th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="schools-body"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <div id="school-edit-modal" class="note-modal" hidden>
+      <div class="note-modal-card school-edit-card">
+        <h3 id="school-edit-title">Edit School</h3>
+        <div id="school-edit-warning-panel" class="follow-up-panel compact" hidden></div>
+        <form id="school-edit-form" class="grid-form school-edit-form">
+          <input id="school-edit-id" type="hidden">
+
+          <label>
+            Name
+            <input id="school-edit-name" type="text" required>
+          </label>
+
+          <label>
+            District
+            <input id="school-edit-district" type="text" required>
+          </label>
+
+          <label>
+            School Type
+            <select id="school-edit-type" required>
+              <option value="">Select</option>
+              <option value="Sabahci">Sabahci</option>
+              <option value="Tam gun">Tam gun</option>
+              <option value="Oglenci">Oglenci</option>
+            </select>
+          </label>
+
+          <label>
+            Status
+            <select id="school-edit-status">
+              <option value="">Automatic</option>
+              <option value="not scheduled">Not scheduled</option>
+              <option value="scheduled">Scheduled</option>
+              <option value="completed">Completed</option>
+              <option value="incomplete">Incomplete</option>
+            </select>
+          </label>
+
+          <label>
+            Lecture Duration
+            <select id="school-edit-duration" required>
+              <option value="">Select</option>
+              <option value="30 mins">30 mins</option>
+              <option value="35 mins">35 mins</option>
+              <option value="40 mins">40 mins</option>
+            </select>
+          </label>
+
+          <label>
+            Working Hours
+            <input id="school-edit-working-hours" type="text" placeholder="e.g. 08.30-13.30">
+          </label>
+
+          <label>
+            Lunch Break
+            <input id="school-edit-lunch-break" type="text" placeholder="e.g. 12.00-12.40">
+          </label>
+
+          <label>
+            Classrooms
+            <input id="school-edit-classroom-count" type="number" min="1" step="1" required>
+          </label>
+
+          <label>
+            Max Classroom Size
+            <input id="school-edit-max-class-size" type="number" min="0" step="1">
+          </label>
+
+          <label>
+            School ID
+            <input id="school-edit-school-code" type="text">
+          </label>
+
+          <label>
+            Survey
+            <input id="school-edit-survey" type="text">
+          </label>
+
+          <label class="full-width">
+            Classroom List
+            <input id="school-edit-classroom-list" type="text" placeholder="e.g. 3A, 3B, 3C">
+          </label>
+
+          <label class="full-width">
+            Notes
+            <input id="school-edit-notes" type="text">
+          </label>
+
+          <label class="full-width">
+            Address
+            <input id="school-edit-address" type="text">
+          </label>
+
+          <label>
+            Latitude
+            <input id="school-edit-latitude" type="text" placeholder="e.g. 37.12345">
+          </label>
+
+          <label>
+            Longitude
+            <input id="school-edit-longitude" type="text" placeholder="e.g. 42.12345">
+          </label>
+
+          <label>
+            City
+            <input id="school-edit-city" type="text">
+          </label>
+
+          <label>
+            Country
+            <input id="school-edit-country" type="text" placeholder="TR">
+          </label>
+
+          <div class="actions full-width">
+            <button id="school-edit-save" type="submit">Save School</button>
+            <button id="school-edit-cancel" type="button" class="ghost">Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <section class="panel" id="panel-dayplans" data-view-section="city-setup">
+      <div class="panel-header">
+        <h2>City Setup</h2>
+        <p>Configure school import, route cache, working days, researchers, and backup for the selected city.</p>
+      </div>
+
+      <div id="city-setup-progress" class="setup-progress-strip" aria-label="City setup progress"></div>
+      <div id="city-setup-warning-panel" class="follow-up-panel" hidden></div>
+
+      <div class="setup-subsection" id="setup-schools">
+        <h3 class="panel-subheader">Schools</h3>
+        <div class="inline-tools" id="schools-import-tools">
+          <label class="file-input">
+            Import Schools File
+            <input id="schools-file-input" type="file" accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
+          </label>
+        </div>
+        <p id="schools-import-copy" class="setup-copy">Import schools from spreadsheet files into the currently selected city. Duplicates are skipped automatically.</p>
+        <div id="schools-import-status" class="small-note">No school import yet for this city.</div>
+        <small>Accepted: <code>.csv</code>, <code>.xlsx</code> | required: <code>name,district,schoolType,lectureDuration,classroomCount</code> (or <code>Ders süresi</code> for lecture duration) | recommended for route building: <code>latitude,longitude</code> | full headers: <code>name,district,schoolType,lectureDuration,workingHours,lunchBreak,classroomCount,maxClassroomSize,classroomList,school_id,survey,notes,addressLine,latitude,longitude,city,country</code></small>
+      </div>
+
+      <div id="panel-distance" class="setup-subsection">
+        <h3 class="panel-subheader">Distance Cache</h3>
+
+        <div class="drive-settings">
+          <h3>Option 1: Calculate Route Cache</h3>
+          <div class="grid-form">
+            <label class="full-width">
+              Google Maps API Key
+              <input id="route-builder-api-key" type="password" placeholder="Paste API key for this calculation only">
+            </label>
+
+            <div class="actions full-width">
+              <button id="route-builder-calc" type="button">Calculate Distances</button>
+              <button id="route-builder-export-csv" type="button" class="ghost" disabled>Export Cache CSV</button>
+              <button id="route-builder-export-json" type="button" class="ghost" disabled>Export Cache JSON</button>
+              <button id="route-builder-use-session" type="button" class="ghost" disabled>Use In This Session</button>
+            </div>
+
+            <div id="route-builder-status" class="small-note">
+              Uses schools already loaded for the selected city. This builder computes all directed school pairs (A -> B and B -> A) and requires <code>latitude</code> and <code>longitude</code> for each school.
+            </div>
+          </div>
+        </div>
+
+        <div class="drive-settings">
+          <h3>Option 2: Import Existing Route Cache</h3>
+          <div class="actions">
+            <label class="file-input">
+              Import Route Cache
+              <input id="import-route-cache-input" type="file" accept=".csv,.xlsx,application/json,.json,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
+            </label>
+          </div>
+          <div id="route-cache-status" class="small-note">No route cache imported yet for this city.</div>
+        </div>
+      </div>
+
+      <div class="setup-subsection" id="setup-days">
+        <h3 class="panel-subheader">Daily Plans</h3>
+        <form id="day-plan-form" class="grid-form">
+          <label>
+            Start Date
+            <input id="day-plan-start-date" type="date" required>
+          </label>
+
+          <label>
+            End Date
+            <input id="day-plan-end-date" type="date" required>
+          </label>
+
+          <label class="full-width">
+            Weekdays
+            <div class="weekday-grid" id="day-plan-weekdays">
+              <label><input type="checkbox" value="1" checked> Mon</label>
+              <label><input type="checkbox" value="2" checked> Tue</label>
+              <label><input type="checkbox" value="3" checked> Wed</label>
+              <label><input type="checkbox" value="4" checked> Thu</label>
+              <label><input type="checkbox" value="5" checked> Fri</label>
+              <label><input type="checkbox" value="6"> Sat</label>
+              <label><input type="checkbox" value="0"> Sun</label>
+            </div>
+          </label>
+
+          <label class="full-width">
+            Notes
+            <input id="day-plan-notes" type="text" placeholder="Optional">
+          </label>
+
+          <div class="actions full-width">
+            <button type="submit" id="day-plan-submit">Add Working Days</button>
+          </div>
+        </form>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Notes</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="day-plans-body"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="setup-subsection" id="setup-researchers">
+        <h3 class="panel-subheader">Researchers</h3>
+        <form id="researcher-form" class="grid-form">
+          <input type="hidden" id="researcher-id">
+
+          <label>
+            Full Name
+            <input id="researcher-name" type="text" required>
+          </label>
+
+          <label class="inline-check">
+            <input id="researcher-active" type="checkbox" checked>
+            Active
+          </label>
+
+          <label>
+            Availability
+            <select id="researcher-availability-mode">
+              <option value="all">All Days (Default)</option>
+              <option value="custom">Custom Days</option>
+            </select>
+          </label>
+
+          <label class="full-width">
+            Available Days
+            <div id="researcher-availability-days" class="weekday-grid"></div>
+          </label>
+
+          <label class="full-width">
+            Notes
+            <input id="researcher-notes" type="text" placeholder="Optional">
+          </label>
+
+          <div class="actions full-width">
+            <button type="submit" id="researcher-submit">Add Researcher</button>
+            <button type="button" id="researcher-cancel" class="ghost" hidden>Cancel Edit</button>
+          </div>
+        </form>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Status</th>
+                <th>Availability</th>
+                <th>Notes</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="researchers-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="setup-subsection" id="setup-backup">
+        <h3 class="panel-subheader">Backup</h3>
+        <div class="actions">
+          <button id="export-json" type="button">Export JSON</button>
+          <button id="upload-to-api" type="button">Upload to API</button>
+          <span id="upload-to-api-status" style="font-size:0.85em;margin-left:8px;"></span>
+        </div>
+        <div class="actions" id="api-config-row" style="margin-top:8px;gap:6px;flex-wrap:wrap;">
+          <input id="api-base-url" type="text" placeholder="API base URL (e.g. http://localhost:5000)" style="flex:2;min-width:200px;">
+          <input id="api-jwt-token" type="password" placeholder="JWT token" style="flex:3;min-width:200px;">
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" id="panel-planner" data-view-section="operations">
+      <div class="panel-header">
+        <h2>Day Planner</h2>
+        <p>Assign one primary school and optional secondary school for each available researcher.</p>
+      </div>
+
+      <div id="planner-day-tabs" class="sheet-tabs"></div>
+
+      <div class="table-wrap">
+        <table class="planner-sheet-table">
+          <thead>
+            <tr>
+              <th>Researcher</th>
+              <th>Session</th>
+              <th>District</th>
+              <th>School</th>
+              <th>Classrooms</th>
+              <th>Working Hours</th>
+              <th>Lunch Break</th>
+              <th>Duration</th>
+              <th>Max Class Size</th>
+              <th>Sarmal</th>
+              <th>Notes</th>
+              <th>Override</th>
+              <th>Extra</th>
+            </tr>
+          </thead>
+          <tbody id="planner-rows-body"></tbody>
+        </table>
+      </div>
+
+      <div id="planner-summary" class="school-info">No day selected.</div>
+
+      <div id="planner-validation" class="validation-box"></div>
+
+      <div class="summary-bar day-planner-bar">
+        <div class="actions">
+          <button id="planner-save" type="button">Save Day Plan</button>
+          <button id="planner-edit" type="button" class="ghost">Edit</button>
+          <button id="planner-print" type="button" class="ghost">Print Day Report</button>
+        </div>
+      </div>
+
+      <div id="planner-note-modal" class="note-modal" hidden>
+        <div class="note-modal-card">
+          <h3 id="planner-note-title">Assignment Notes</h3>
+          <textarea id="planner-note-input" placeholder="Enter notes"></textarea>
+          <div class="actions">
+            <button id="planner-note-save" type="button">Save Note</button>
+            <button id="planner-note-cancel" type="button" class="ghost">Cancel</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="print-report" class="print-report"></div>
+    </section>
+
+    <section class="panel" id="day-verification-panel" data-view-section="operations" hidden>
+      <div class="panel-header">
+        <h2>Day Verification</h2>
+        <p>After a day is locked, verify whether each planned school was fully completed.</p>
+      </div>
+      <div id="day-verification-tabs" class="sheet-tabs"></div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>School</th>
+              <th>District</th>
+              <th>Outcome</th>
+              <th>Remaining #</th>
+              <th>Remaining Classroom(s)</th>
+            </tr>
+          </thead>
+          <tbody id="day-verification-body"></tbody>
+        </table>
+      </div>
+
+      <div id="day-verification-status" class="small-note"></div>
+      <div class="actions">
+        <button id="day-verification-save" type="button">Save Verification</button>
+        <button id="day-verification-edit" type="button" class="ghost">Edit</button>
+      </div>
+    </section>
+
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
