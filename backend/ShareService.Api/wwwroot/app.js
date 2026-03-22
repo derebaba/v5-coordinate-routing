@@ -5828,6 +5828,7 @@ async function loadEditDocumentIfNeeded() {
 
     resetResearcherForm();
     resetDayPlanForm();
+    uiState.mainView = "city-setup";
     renderAll();
     renderRouteCacheStatus();
   } catch (err) {
