@@ -167,6 +167,7 @@ bindEvents();
 renderSessionBadge();
 renderRouteCacheStatus();
 renderRouteBuilderStatus();
+uiState.mainView = "city-setup";
 renderAll();
 applyPendingImportIfExists();
 bootstrapRouteCachePersistence();
@@ -5875,39 +5876,8 @@ async function onUploadToApi() {
         status.textContent = "Shared document updated successfully.";
         status.style.color = "var(--color-success, #27ae60)";
       } else if (shareUrl) {
-        status.innerHTML = "";
-        status.style.color = "var(--color-success, #27ae60)";
-
-        const link = document.createElement("a");
-        link.href = shareUrl;
-        link.target = "_blank";
-        link.textContent = shareUrl;
-        link.style.color = "var(--primary, #1e7a46)";
-        link.style.wordBreak = "break-all";
-        link.style.textDecoration = "underline";
-
-        const copyBtn = document.createElement("button");
-        copyBtn.type = "button";
-        copyBtn.className = "ghost";
-        copyBtn.textContent = "Copy Link";
-        copyBtn.style.marginLeft = "8px";
-        copyBtn.addEventListener("click", async () => {
-          try {
-            await navigator.clipboard.writeText(shareUrl);
-            copyBtn.textContent = "Copied!";
-            copyBtn.style.color = "#22573b";
-            setTimeout(() => {
-              copyBtn.textContent = "Copy Link";
-              copyBtn.style.color = "";
-            }, 2000);
-          } catch {
-            copyBtn.textContent = "Copy failed";
-            copyBtn.style.color = "var(--danger, #c53e3e)";
-          }
-        });
-
-        status.appendChild(link);
-        status.appendChild(copyBtn);
+        window.location.href = shareUrl;
+        return;
       } else {
         status.textContent = "Uploaded successfully.";
         status.style.color = "var(--color-success, #27ae60)";
