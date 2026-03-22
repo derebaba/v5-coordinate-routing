@@ -86,7 +86,7 @@ The following items need manual testing in a browser to fully verify goal achiev
 4. Verify the viewer page opens in a new tab
 
 **Expected:**
-- After upload, a clickable URL is displayed (e.g., `http://localhost:8080/viewer/{id}`)
+- After upload, a clickable URL is displayed (e.g., `http://localhost:5000/viewer/{id}`)
 - A "Copy Link" button appears next to the URL
 - Clicking the URL opens the viewer page showing the uploaded document
 
@@ -199,3 +199,4 @@ All must-haves verified:
 
 _Verified: 2026-03-21T15:42:00Z_  
 _Verifier: Claude (gsd-verifier)_
+

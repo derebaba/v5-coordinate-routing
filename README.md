@@ -38,10 +38,10 @@ powershell -ExecutionPolicy Bypass -File .\scripts\start-local.ps1
 What it does:
 - Creates `.env` from `.env.example` if missing
 - Generates `Auth__JwtSecret` automatically if blank
-- Ensures local `Cors__AllowedOrigins` includes `localhost:5000` and `localhost:8080`
+- Ensures local `Cors__AllowedOrigins` includes `localhost:5000`
 - Runs `docker compose up --build -d`
-- Starts a local static frontend server at `http://localhost:8080` (if Python is installed)
 - Waits for `http://localhost:5000/health` to report healthy
+- Serves the frontend from the API at `http://localhost:5000/index.html`
 
 ### Common Commands
 
@@ -116,7 +116,9 @@ Generate a strong JWT secret locally:
 
 ```powershell
 # PowerShell
-[Convert]::ToBase64String([System.Security.Cryptography.RandomNumberGenerator]::GetBytes(32))
+$bytes = New-Object byte[] 32
+[System.Security.Cryptography.RNGCryptoServiceProvider]::Create().GetBytes($bytes)
+[Convert]::ToBase64String($bytes)
 ```
 
 ```bash
@@ -201,7 +203,7 @@ powershell -ExecutionPolicy Bypass -File .\scripts\verify-deploy.ps1 `
 
 ### Route cache workflow (browser-first)
 
-1. Open `index.html` in a browser.
+1. Open `http://localhost:5000/index.html` in a browser.
 2. In **Setup > Distance Cache Builder**:
    - import the school file with `latitude` and `longitude` columns
    - paste Google API key
@@ -245,4 +247,4 @@ node scripts/build-route-cache.mjs \
 
 ## Run app
 
-Open `index.html` in a browser.
+Open `http://localhost:5000/index.html` in a browser.

@@ -110,7 +110,7 @@ app.MapPost("/documents", async (HttpContext ctx, IMongoDatabase db) =>
     var collection = db.GetCollection<BsonDocument>("documents");
     await collection.InsertOneAsync(doc);
 
-    var url = $"{ctx.Request.Scheme}://{ctx.Request.Host}/viewer/{id}";
+    var url = $"{ctx.Request.Scheme}://{ctx.Request.Host}/edit/{id}";
 
     return Results.Json(new { id, url, createdAt = now }, statusCode: 201);
 });
@@ -176,7 +176,7 @@ app.MapPut("/documents/{id}", async (string id, HttpContext ctx, IMongoDatabase 
 
     await collection.ReplaceOneAsync(new BsonDocument("_id", id), replacement);
 
-    var url = $"{ctx.Request.Scheme}://{ctx.Request.Host}/viewer/{id}";
+    var url = $"{ctx.Request.Scheme}://{ctx.Request.Host}/edit/{id}";
 
     return Results.Json(new { id, url, createdAt });
 });

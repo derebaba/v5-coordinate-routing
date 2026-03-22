@@ -389,7 +389,7 @@ The component dependency graph drives this order:
 ## Sources
 
 - Direct code inspection: `app.js` lines 5798–5850 (`onUploadToApi`), lines 5783–5796 (`onExportJson`), lines 5459–5477 (`onRouteBuilderExportJson`)
-- Direct code inspection: `index.html` lines 415–420 (upload UI with `api-base-url`, `api-jwt-token` inputs)
+- Direct code inspection: `index.html` lines 415–420 (upload UI with JWT token input)
 - MongoDB .NET Driver documentation: https://www.mongodb.com/docs/drivers/csharp/
 - .NET Minimal API JWT: https://learn.microsoft.com/en-us/aspnet/core/fundamentals/minimal-apis/security
 - Docker Compose networking: https://docs.docker.com/compose/networking/
@@ -399,3 +399,4 @@ The component dependency graph drives this order:
 
 *Architecture research for: Coordinate Routing Share Service*
 *Researched: 2026-03-21*
+

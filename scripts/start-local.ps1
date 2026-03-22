@@ -12,6 +12,13 @@ if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
     throw "Docker CLI not found. Install Docker Desktop and try again."
 }
 
+# Check if Docker daemon is running
+try {
+    docker ps -q > $null 2>&1
+} catch {
+    throw "Docker is not running. Start Docker Desktop and try again."
+}
+
 if (-not (Test-Path ".env")) {
     if (-not (Test-Path ".env.example")) {
         throw ".env.example not found in repo root."
@@ -32,12 +39,10 @@ if ($envContent -match "(?m)^Auth__JwtSecret\s*=\s*$") {
     Write-Host "Generated local Auth__JwtSecret in .env"
 }
 
-# Ensure local CORS includes both API and static frontend origins.
+# Ensure local CORS includes API origin.
 $requiredOrigins = @(
     "http://localhost:5000",
-    "http://127.0.0.1:5000",
-    "http://localhost:8080",
-    "http://127.0.0.1:8080"
+    "http://127.0.0.1:5000"
 )
 
 if ($envContent -match "(?m)^Cors__AllowedOrigins\s*=\s*(.*)$") {
@@ -63,46 +68,12 @@ if (-not $Foreground) {
 Write-Host "Starting local stack with Docker Compose..."
 & docker @composeArgs
 
-# Start local static frontend server on http://localhost:8080 if Python is available.
-$frontendUrl = "http://localhost:8080/index.html"
+$frontendUrl = "http://localhost:5000/index.html"
 $frontendReady = $false
-$python = Get-Command python -ErrorAction SilentlyContinue
-
-if ($python) {
-    $existingServers = Get-CimInstance Win32_Process -Filter "Name='python.exe'" |
-        Where-Object { $_.CommandLine -match "http\.server 8080" }
-
-    foreach ($server in $existingServers) {
-        if ($server.CommandLine -notmatch [Regex]::Escape($repoRoot)) {
-            Stop-Process -Id $server.ProcessId
-        }
-    }
-
-    $existingServers = Get-CimInstance Win32_Process -Filter "Name='python.exe'" |
-        Where-Object { $_.CommandLine -match "http\.server 8080" }
-
-    if (-not $existingServers) {
-        Start-Process python -ArgumentList "-m", "http.server", "8080", "--directory", $repoRoot -WindowStyle Hidden | Out-Null
-        Start-Sleep -Seconds 1
-    }
-
-    try {
-        $frontendStatus = (Invoke-WebRequest -Uri $frontendUrl -UseBasicParsing -TimeoutSec 5).StatusCode
-        if ($frontendStatus -eq 200) {
-            $frontendReady = $true
-        }
-    } catch {
-        $frontendReady = $false
-    }
-}
 
 if ($SkipHealthCheck) {
     Write-Host "Started. Health check skipped."
-    if ($frontendReady) {
-        Write-Host "Frontend is available at $frontendUrl"
-    } else {
-        Write-Warning "Frontend on port 8080 not confirmed. If needed, run: python -m http.server 8080 --directory `"$repoRoot`""
-    }
+    Write-Host "Open frontend at $frontendUrl"
     exit 0
 }
 
@@ -117,10 +88,19 @@ for ($i = 1; $i -le 20; $i++) {
         $resp = Invoke-RestMethod -Uri "http://localhost:5000/health" -TimeoutSec 3
         if ($resp.status -eq "ok") {
             Write-Host "API is healthy at http://localhost:5000/health"
+            try {
+                $frontendStatus = (Invoke-WebRequest -Uri $frontendUrl -UseBasicParsing -TimeoutSec 5).StatusCode
+                if ($frontendStatus -eq 200) {
+                    $frontendReady = $true
+                }
+            } catch {
+                $frontendReady = $false
+            }
+
             if ($frontendReady) {
                 Write-Host "Frontend is healthy at $frontendUrl"
             } else {
-                Write-Warning "Frontend on port 8080 not confirmed. Open index.html directly or start: python -m http.server 8080 --directory `"$repoRoot`""
+                Write-Warning "Frontend did not return 200 yet at $frontendUrl"
             }
             exit 0
         }

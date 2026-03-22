@@ -153,7 +153,6 @@ const el = {
   exportJson: document.getElementById("export-json"),
   uploadToApi: document.getElementById("upload-to-api"),
   uploadToApiStatus: document.getElementById("upload-to-api-status"),
-  apiBaseUrl: document.getElementById("api-base-url"),
   apiJwtToken: document.getElementById("api-jwt-token"),
   importJsonInput: document.getElementById("import-json-input"),
   cleanupSessions: document.getElementById("cleanup-sessions")
@@ -241,13 +240,7 @@ function bindEvents() {
   el.dayVerificationBody.addEventListener("change", onDayVerificationChange);
   el.exportJson.addEventListener("click", onExportJson);
   el.uploadToApi.addEventListener("click", onUploadToApi);
-  el.apiBaseUrl.value = localStorage.getItem("api_base_url") || "";
   el.apiJwtToken.value = localStorage.getItem("api_jwt_token") || "";
-  if (EDIT_MODE) {
-    el.apiBaseUrl.value = window.location.origin;
-    localStorage.setItem("api_base_url", window.location.origin);
-  }
-  el.apiBaseUrl.addEventListener("change", () => localStorage.setItem("api_base_url", el.apiBaseUrl.value.trim()));
   el.apiJwtToken.addEventListener("change", () => localStorage.setItem("api_jwt_token", el.apiJwtToken.value.trim()));
   el.importJsonInput.addEventListener("change", onImportJson);
   if (el.cleanupSessions) {
@@ -281,6 +274,29 @@ function getSessionIdFromUrl() {
 
 function createSessionId() {
   return `session_${Date.now().toString(36)}_${Math.random().toString(16).slice(2, 8)}`;
+}
+
+function resolveApiBaseUrl() {
+  const location = window.location;
+  if (!location) {
+    return "http://localhost:5000";
+  }
+
+  const protocol = String(location.protocol || "").toLowerCase();
+  if (protocol === "file:") {
+    return "http://localhost:5000";
+  }
+
+  const hostname = location.hostname || "localhost";
+  const port = String(location.port || "");
+  const derivedPort = port === "8080" ? "5000" : port;
+  const isDefaultPort = (location.protocol === "http:" && derivedPort === "80")
+    || (location.protocol === "https:" && derivedPort === "443");
+  const hostWithPort = isDefaultPort || !derivedPort
+    ? hostname
+    : `${hostname}:${derivedPort}`;
+
+  return `${location.protocol}//${hostWithPort}`;
 }
 
 function createEmptyCity(name) {
@@ -5814,17 +5830,10 @@ function onExportJson() {
 }
 
 async function onUploadToApi() {
-  const baseUrl = EDIT_MODE
-    ? window.location.origin
-    : (el.apiBaseUrl.value || localStorage.getItem("api_base_url") || "").trim().replace(/\/$/, "");
+  const baseUrl = resolveApiBaseUrl();
   const token = (el.apiJwtToken.value || localStorage.getItem("api_jwt_token") || "").trim();
   const status = el.uploadToApiStatus;
 
-  if (!baseUrl) {
-    status.textContent = "Enter API base URL first.";
-    status.style.color = "var(--color-error, #c0392b)";
-    return;
-  }
   if (!token) {
     status.textContent = "Enter JWT token first.";
     status.style.color = "var(--color-error, #c0392b)";
@@ -5955,7 +5964,7 @@ async function onImportJson(event) {
 
 async function loadEditDocumentIfNeeded() {
   if (!EDIT_MODE) return;
-  const apiBase = window.location.origin;
+  const apiBase = resolveApiBaseUrl();
   try {
     const res = await fetch(`${apiBase}/documents/${EDIT_MODE.documentId}`);
     if (!res.ok) {
