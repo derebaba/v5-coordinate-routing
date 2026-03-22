@@ -90,6 +90,104 @@ docker compose down
 - The API container listens on port **8080** internally; Docker maps host port **5000** → container port **8080**.
 - Environment variables are loaded from the root `.env` file. See `.env.example` for the full list.
 
+## Fly.io Deployment (Phase 4)
+
+This runbook is the production path for deploying the API to Fly.io with MongoDB Atlas.
+
+### 1) Install and authenticate Fly CLI
+
+```bash
+fly auth login
+```
+
+### 2) Bootstrap Fly app and manifest
+
+From repo root (where `fly.toml` exists):
+
+```bash
+fly launch --no-deploy
+```
+
+When prompted, use your app name and keep region as `fra` (or keep the existing `primary_region = "fra"` in `fly.toml`).
+
+### 3) Prepare production secrets
+
+Generate a strong JWT secret locally:
+
+```powershell
+# PowerShell
+[Convert]::ToBase64String([System.Security.Cryptography.RandomNumberGenerator]::GetBytes(32))
+```
+
+```bash
+# bash
+openssl rand -base64 32
+```
+
+Set all required runtime values using Fly secrets (**must use `__` key names**):
+
+```bash
+fly secrets set \
+  Mongo__ConnectionString="mongodb+srv://<username>:<password>@<cluster-url>/<db>?retryWrites=true&w=majority" \
+  Mongo__DatabaseName="coordinate-routing" \
+  Auth__JwtSecret="<paste-generated-secret>" \
+  Cors__AllowedOrigins="https://<app>.fly.dev"
+```
+
+Required key names:
+- `Mongo__ConnectionString` (Atlas URI, must be `mongodb+srv://...`)
+- `Mongo__DatabaseName`
+- `Auth__JwtSecret`
+- `Cors__AllowedOrigins` (production value pattern: `https://<app>.fly.dev`)
+
+### 4) Atlas network access (v1 guidance)
+
+For initial v1 deployment, allow Atlas network access from anywhere:
+- Atlas Dashboard → **Network Access** → add `0.0.0.0/0`
+
+Security tradeoff: `0.0.0.0/0` is broader than ideal. It is accepted for v1 simplicity, but should be hardened later by restricting access (for example, to known Fly egress ranges/other tighter controls) once operational constraints are clear.
+
+### 5) Deploy
+
+```bash
+fly deploy
+```
+
+### 6) Verify deployment
+
+Basic health check:
+
+```bash
+curl -fsS https://<app>.fly.dev/health
+```
+
+PowerShell smoke test (health + authenticated upload):
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\verify-deploy.ps1 `
+  -AppUrl "https://<app>.fly.dev" `
+  -BearerToken "<Auth__JwtSecret>"
+```
+
+### Troubleshooting
+
+- **Secret key mismatch (`:` vs `__`)**
+  - Symptom: app fails on startup with missing required config.
+  - Fix: re-run `fly secrets set` with exact keys:
+    `Mongo__ConnectionString`, `Mongo__DatabaseName`, `Auth__JwtSecret`, `Cors__AllowedOrigins`.
+
+- **CORS mismatch**
+  - Symptom: browser requests fail, while direct CLI calls may still work.
+  - Fix: ensure `Cors__AllowedOrigins` exactly matches deployed frontend origin (for v1 API-only flow use `https://<app>.fly.dev`).
+
+- **Atlas auth/network failure**
+  - Symptom: `/health` fails or Fly reports unhealthy machine.
+  - Fixes:
+    - verify `Mongo__ConnectionString` is a valid `mongodb+srv://...` URI with correct credentials
+    - verify Atlas user has database access
+    - verify Atlas Network Access includes `0.0.0.0/0` for v1
+    - inspect logs: `fly logs`
+
 ---
 
 ## Browser-First Route Cache Workflow
