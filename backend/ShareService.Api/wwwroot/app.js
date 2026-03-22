@@ -47,7 +47,6 @@ const uiState = {
 };
 
 const el = {
-  sessionBadge: document.getElementById("session-badge"),
   mainSetupButton: document.getElementById("main-setup-button"),
   cityWorkspaceBar: document.getElementById("city-workspace-bar"),
   cityTabs: document.getElementById("city-tabs"),
@@ -160,7 +159,6 @@ const ROUTE_BUILDER_MAX_CONCURRENCY = 4;
 let routeCacheDbPromise = null;
 
 bindEvents();
-renderSessionBadge();
 renderRouteCacheStatus();
 renderRouteBuilderStatus();
 uiState.mainView = "city-setup";
@@ -254,20 +252,6 @@ function getSessionIdFromUrl() {
   if (editMatch) {
     return `edit_${editMatch[1]}`;
   }
-  const params = new URLSearchParams(window.location.search);
-  const value = String(params.get("session") || "").trim();
-  if (value) {
-    return value;
-  }
-
-  const sessionId = `session_${Date.now().toString(36)}_${Math.random().toString(16).slice(2, 8)}`;
-  const nextUrl = new URL(window.location.href);
-  nextUrl.searchParams.set("session", sessionId);
-  window.history.replaceState({}, "", nextUrl.toString());
-  return sessionId;
-}
-
-function createSessionId() {
   return `session_${Date.now().toString(36)}_${Math.random().toString(16).slice(2, 8)}`;
 }
 
@@ -381,19 +365,6 @@ function createFollowUpWarning(kind, title, message, location, resolutionKey, re
     resolutionKey: String(resolutionKey || "").trim(),
     createdAt: new Date().toISOString()
   };
-}
-
-function buildSessionUrl(sessionId) {
-  const url = new URL(window.location.href);
-  url.searchParams.set("session", sessionId);
-  return url.toString();
-}
-
-function renderSessionBadge() {
-  const currentCity = getCurrentCity();
-  el.sessionBadge.textContent = currentCity
-    ? `Session: ${SESSION_ID} | City: ${currentCity.name}`
-    : `Session: ${SESSION_ID}`;
 }
 
 function getActiveFollowUpWarnings() {
@@ -1102,7 +1073,6 @@ function renderAll() {
   ensureSelectedCity();
   resolveFollowUpWarnings();
   ensureOperationsLayoutOrder();
-  renderSessionBadge();
   renderCityWorkspaceBar();
   applyMainViewVisibility();
   renderProgressVisibility();
