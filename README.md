@@ -29,6 +29,20 @@ curl http://localhost:5000/health
 
 The API is available at **http://localhost:5000** from your host machine.
 
+### Windows one-command start
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\start-local.ps1
+```
+
+What it does:
+- Creates `.env` from `.env.example` if missing
+- Generates `Auth__JwtSecret` automatically if blank
+- Ensures local `Cors__AllowedOrigins` includes `localhost:5000` and `localhost:8080`
+- Runs `docker compose up --build -d`
+- Starts a local static frontend server at `http://localhost:8080` (if Python is installed)
+- Waits for `http://localhost:5000/health` to report healthy
+
 ### Common Commands
 
 | Command | Description |
