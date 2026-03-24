@@ -5972,22 +5972,88 @@ async function onImportJson(event) {
 
 async function tryAutoLoadDocument() {
   const token = (localStorage.getItem("api_jwt_token") || "").trim();
-  if (!token) return;
+  if (token) {
+    const docId = await fetchFirstDocumentId(token);
+    if (docId) {
+      window.location.href = `${window.location.origin}/edit/${docId}`;
+      return;
+    }
+  }
+  showTokenPrompt();
+}
+
+async function fetchFirstDocumentId(token) {
   const apiBase = resolveApiBaseUrl();
   try {
     const res = await fetch(`${apiBase}/documents`, {
       headers: { "Authorization": `Bearer ${token}` }
     });
-    if (!res.ok) return;
+    if (!res.ok) return null;
     const docs = await res.json();
-    if (!Array.isArray(docs) || docs.length === 0) return;
-    const docId = docs[0].id;
-    if (docId) {
-      window.location.href = `${window.location.origin}/edit/${docId}`;
-    }
+    if (!Array.isArray(docs) || docs.length === 0) return null;
+    return docs[0].id || null;
   } catch (err) {
-    console.error("Auto-load document failed:", err);
+    console.error("Fetch documents failed:", err);
+    return null;
   }
+}
+
+function showTokenPrompt() {
+  const overlay = document.getElementById("token-prompt-overlay");
+  const input = document.getElementById("token-prompt-input");
+  const connectBtn = document.getElementById("token-prompt-connect");
+  const skipBtn = document.getElementById("token-prompt-skip");
+  const errorEl = document.getElementById("token-prompt-error");
+  if (!overlay) return;
+
+  overlay.hidden = false;
+  input.value = "";
+  input.focus();
+
+  async function onConnect() {
+    const token = input.value.trim();
+    if (!token) {
+      errorEl.textContent = "Please enter a token.";
+      errorEl.hidden = false;
+      return;
+    }
+    errorEl.hidden = true;
+    connectBtn.disabled = true;
+    connectBtn.textContent = "Connecting...";
+
+    const docId = await fetchFirstDocumentId(token);
+    if (docId) {
+      localStorage.setItem("api_jwt_token", token);
+      if (el.apiJwtToken) el.apiJwtToken.value = token;
+      window.location.href = `${window.location.origin}/edit/${docId}`;
+      return;
+    }
+
+    // No existing document — save token and let user start fresh
+    localStorage.setItem("api_jwt_token", token);
+    if (el.apiJwtToken) el.apiJwtToken.value = token;
+    overlay.hidden = true;
+    cleanup();
+  }
+
+  function onSkip() {
+    overlay.hidden = true;
+    cleanup();
+  }
+
+  function onKeydown(e) {
+    if (e.key === "Enter") onConnect();
+  }
+
+  function cleanup() {
+    connectBtn.removeEventListener("click", onConnect);
+    skipBtn.removeEventListener("click", onSkip);
+    input.removeEventListener("keydown", onKeydown);
+  }
+
+  connectBtn.addEventListener("click", onConnect);
+  skipBtn.addEventListener("click", onSkip);
+  input.addEventListener("keydown", onKeydown);
 }
 
 async function loadEditDocumentIfNeeded() {

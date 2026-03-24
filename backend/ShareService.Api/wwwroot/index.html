@@ -520,6 +520,19 @@
 
   </main>
 
+  <div id="token-prompt-overlay" class="token-prompt-overlay" hidden>
+    <div class="token-prompt-card">
+      <h2>Connect to Session</h2>
+      <p>Enter your API token to load your session.</p>
+      <input id="token-prompt-input" type="password" placeholder="API token" class="token-prompt-input">
+      <div id="token-prompt-error" class="token-prompt-error" hidden></div>
+      <div class="actions">
+        <button id="token-prompt-connect" type="button">Connect</button>
+        <button id="token-prompt-skip" type="button" class="ghost">Work Offline</button>
+      </div>
+    </div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="app.js"></script>
 </body>
