@@ -5595,8 +5595,10 @@ function loadGoogleMapsSdk(apiKey) {
 }
 
 function requestDistanceMatrix(service, origin, destinationQueries) {
+  console.log("[DEBUG-ROUTE] requestDistanceMatrix called", { origin, destinationCount: destinationQueries.length });
   return new Promise((resolve) => {
     const timeout = setTimeout(() => {
+      console.warn("[DEBUG-ROUTE] Request timed out");
       resolve({ status: "TIMEOUT", rows: [] });
     }, 20000);
     service.getDistanceMatrix({
@@ -5610,6 +5612,7 @@ function requestDistanceMatrix(service, origin, destinationQueries) {
       unitSystem: google.maps.UnitSystem.METRIC
     }, (response, status) => {
       clearTimeout(timeout);
+      console.log("[DEBUG-ROUTE] API response", { status, hasResponse: !!response, rows: response?.rows?.length, elements: response?.rows?.[0]?.elements?.map(e => ({ status: e.status, duration: e.duration, distance: e.distance })) });
       if (!response) {
         resolve({ status: status || "ERROR", rows: [] });
         return;
