@@ -5067,7 +5067,7 @@ function importSchoolsFromRows(rows) {
       reason = "missingSchoolType";
     } else if (!lectureDuration) {
       reason = "missingLectureDuration";
-    } else if (Number.isNaN(classroomCount)) {
+    } else if (Number.isNaN(classroomCount) || classroomCount <= 0) {
       reason = "invalidClassroomCount";
     }
 
@@ -5382,7 +5382,7 @@ function loadGoogleMapsSdk(apiKey) {
     return Promise.resolve();
   }
   if (window.google?.maps?.DistanceMatrixService && googleMapsSdkLoadedKey && googleMapsSdkLoadedKey !== apiKey) {
-    return Promise.resolve();
+    return Promise.reject(new Error("Google Maps SDK is already loaded with a different API key. Refresh the page to use a new key."));
   }
   if (googleMapsSdkPromise) {
     return googleMapsSdkPromise;
