@@ -5339,6 +5339,11 @@ function onAccommodationSave() {
   city.accommodationLongitude = lng;
   noteDocumentMutation();
   renderAccommodationStatus();
+  renderCitySetupProgress();
+  const hasAccommodationRoutes = city.routeCache.some((entry) => entry.fromSchoolId === ACCOMMODATION_PSEUDO_ID);
+  if (!hasAccommodationRoutes && city.routeCache.length > 0) {
+    el.accommodationStatus.textContent += " — Re-run Calculate Distances to include accommodation routes.";
+  }
 }
 
 function onAccommodationClear() {
@@ -5350,6 +5355,8 @@ function onAccommodationClear() {
   el.accommodationLng.value = "";
   noteDocumentMutation();
   renderAccommodationStatus();
+  renderCitySetupProgress();
+  renderPlanner();
 }
 
 function renderAccommodationStatus() {
