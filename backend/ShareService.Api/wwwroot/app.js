@@ -46,6 +46,14 @@ const uiState = {
   }
 };
 
+const syncState = {
+  hasUnsyncedChanges: false,
+  hasUploadedDocument: false,
+  hasUserChanges: false,
+  uploadState: "idle",
+  lastError: ""
+};
+
 const el = {
   mainSetupButton: document.getElementById("main-setup-button"),
   cityWorkspaceBar: document.getElementById("city-workspace-bar"),
@@ -148,7 +156,11 @@ const el = {
 
   exportJson: document.getElementById("export-json"),
   uploadToApi: document.getElementById("upload-to-api"),
-  uploadToApiStatus: document.getElementById("upload-to-api-status"),
+  syncStatusBadge: document.getElementById("sync-status-badge"),
+  syncStatusMessage: document.getElementById("sync-status-message"),
+  floatingSyncWarning: document.getElementById("floating-sync-warning"),
+  floatingSyncWarningTitle: document.getElementById("floating-sync-warning-title"),
+  floatingSyncWarningMessage: document.getElementById("floating-sync-warning-message"),
   apiJwtToken: document.getElementById("api-jwt-token"),
   importJsonInput: document.getElementById("import-json-input")
 };
@@ -159,6 +171,7 @@ const ROUTE_BUILDER_MAX_CONCURRENCY = 4;
 let routeCacheDbPromise = null;
 
 bindEvents();
+initializeSyncState();
 renderRouteCacheStatus();
 renderRouteBuilderStatus();
 uiState.mainView = "city-setup";
@@ -245,6 +258,8 @@ function bindEvents() {
   if (el.progressVisibilityToggle) {
     el.progressVisibilityToggle.addEventListener("click", onProgressVisibilityToggle);
   }
+  window.addEventListener("beforeunload", onBeforeUnload);
+  window.onbeforeunload = onBeforeUnload;
 }
 
 function getSessionIdFromUrl() {
@@ -276,6 +291,124 @@ function resolveApiBaseUrl() {
     : `${hostname}:${derivedPort}`;
 
   return `${location.protocol}//${hostWithPort}`;
+}
+
+function initializeSyncState() {
+  syncState.hasUnsyncedChanges = false;
+  syncState.hasUploadedDocument = false;
+  syncState.hasUserChanges = false;
+  syncState.uploadState = "idle";
+  syncState.lastError = "";
+}
+
+function buildUploadPayload() {
+  return {
+    schemaVersion: state.schemaVersion,
+    selectedCityId: state.selectedCityId,
+    cities: state.cities
+  };
+}
+
+function noteDocumentMutation() {
+  if (syncState.uploadState !== "uploading") {
+    syncState.uploadState = "idle";
+  }
+  syncState.lastError = "";
+  syncState.hasUserChanges = true;
+  syncState.hasUnsyncedChanges = true;
+  renderSyncStatus();
+}
+
+function markCurrentStateAsUploaded() {
+  syncState.uploadState = "synced";
+  syncState.lastError = "";
+  syncState.hasUnsyncedChanges = false;
+  syncState.hasUploadedDocument = true;
+  syncState.hasUserChanges = false;
+  renderSyncStatus();
+}
+
+function setCurrentStateAsBaseline() {
+  syncState.hasUnsyncedChanges = false;
+  syncState.hasUserChanges = false;
+  if (syncState.uploadState !== "failed") {
+    syncState.uploadState = "idle";
+  }
+  renderSyncStatus();
+}
+
+function renderSyncStatus() {
+  if (!el.syncStatusBadge || !el.syncStatusMessage || !el.uploadToApi) {
+    return;
+  }
+
+  const badge = el.syncStatusBadge;
+  const message = el.syncStatusMessage;
+  const floatingWarning = el.floatingSyncWarning;
+  const floatingTitle = el.floatingSyncWarningTitle;
+  badge.classList.remove("is-synced", "is-unsynced", "is-uploading", "is-failed");
+
+  if (floatingWarning) {
+    floatingWarning.hidden = true;
+  }
+
+  if (syncState.uploadState === "uploading") {
+    badge.textContent = "Uploading";
+    badge.classList.add("is-uploading");
+    message.textContent = EDIT_MODE
+      ? "Updating the shared document..."
+      : "Uploading the current document to the API...";
+    el.uploadToApi.disabled = true;
+    return;
+  }
+
+  el.uploadToApi.disabled = false;
+
+  if (syncState.uploadState === "failed") {
+    badge.textContent = "Upload Failed";
+    badge.classList.add("is-failed");
+    message.textContent = syncState.lastError || (syncState.hasUnsyncedChanges
+      ? "Upload failed. Your local changes are still not uploaded."
+      : "Upload failed.");
+    if (floatingWarning && floatingTitle) {
+      floatingWarning.hidden = false;
+      floatingTitle.textContent = "Unsynced changes";
+    }
+    return;
+  }
+
+  if (syncState.hasUserChanges && syncState.hasUnsyncedChanges) {
+    badge.textContent = "Unsynced";
+    badge.classList.add("is-unsynced");
+    message.textContent = syncState.hasUploadedDocument
+      ? "You have changes that are not uploaded to the API."
+      : "You have local changes that are not uploaded yet.";
+    if (floatingWarning && floatingTitle) {
+      floatingWarning.hidden = false;
+      floatingTitle.textContent = "Unsynced changes";
+    }
+    return;
+  }
+
+  if (syncState.hasUploadedDocument) {
+    badge.textContent = "Synced";
+    badge.classList.add("is-synced");
+    message.textContent = "All changes are uploaded to the API.";
+    return;
+  }
+
+  badge.textContent = "Local";
+  message.textContent = "No upload yet.";
+}
+
+function onBeforeUnload(event) {
+  if (!(syncState.hasUserChanges && syncState.hasUnsyncedChanges)) {
+    return undefined;
+  }
+  const warning = "You have unsynced changes.";
+  event.preventDefault();
+  event.returnValue = warning;
+  return warning;
 }
 
 function createEmptyCity(name) {
@@ -726,6 +859,7 @@ async function bootstrapRouteCachePersistence() {
         await replaceRouteCacheForCityInDb(city.id, city.routeCache);
       }
     }
+    setCurrentStateAsBaseline();
     renderRouteCacheStatus();
   } catch (error) {
     console.error("Route cache database bootstrap failed", error);
@@ -1074,6 +1208,7 @@ function renderAll() {
   resolveFollowUpWarnings();
   ensureOperationsLayoutOrder();
   renderCityWorkspaceBar();
+  renderSyncStatus();
   applyMainViewVisibility();
   renderProgressVisibility();
   renderSchoolsListVisibility();
@@ -1175,6 +1310,7 @@ function onAddCity() {
   state.selectedCityId = city.id;
   uiState.mainView = "city-setup";
   resetCityScopedUiForSwitch();
+  noteDocumentMutation();
   renderAll();
 }
 
@@ -1193,6 +1329,7 @@ function onRenameCity(){
     return;
   }
   city.name = name;
+  noteDocumentMutation();
   renderAll();
 }
 
@@ -1218,6 +1355,7 @@ async function onDeleteCity(){
     }
   }
   resetCityScopedUiForSwitch();
+  noteDocumentMutation();
   renderAll();
 }
 
@@ -1259,6 +1397,7 @@ async function onCreateFirstCity(event) {
       el.cityCreateFile.value = "";
     }
     resetCityScopedUiForSwitch();
+    noteDocumentMutation();
     renderAll();
   } catch (error) {
     console.error(error);
@@ -1266,6 +1405,8 @@ async function onCreateFirstCity(event) {
       message: error.message || "Could not create city.",
       tone: "error"
     };
+    noteDocumentMutation();
+    renderAll();
     renderSchoolsImportStatus();
     alert(error.message || "Could not create city.");
   }
@@ -1670,6 +1811,7 @@ async function onSchoolEditSubmit(event) {
   }
 
   closeSchoolEditor();
+  noteDocumentMutation();
   renderAll();
 }
 
@@ -1703,6 +1845,7 @@ async function onDeleteSchool(event) {
       id
     ));
   }
+  noteDocumentMutation();
   renderAll();
 }
 
@@ -2327,6 +2470,7 @@ function onResearcherSubmit(event) {
   }
 
   resetResearcherForm();
+  noteDocumentMutation();
   renderAll();
 }
 
@@ -2353,6 +2497,7 @@ function onResearcherTableAction(event) {
 
   if (action === "toggle-researcher") {
     researcher.active = !researcher.active;
+    noteDocumentMutation();
     renderAll();
     return;
   }
@@ -2362,6 +2507,7 @@ function onResearcherTableAction(event) {
       return;
     }
     state.researchers = state.researchers.filter((item) => item.id !== id);
+    noteDocumentMutation();
     renderAll();
   }
 }
@@ -2505,6 +2651,7 @@ function onDayPlanSubmit(event) {
     uiState.selectedVerificationDayIdsByCity[cityId] = addedIds[0];
   }
   resetDayPlanForm();
+  noteDocumentMutation();
   renderAll();
 }
 
@@ -2563,6 +2710,7 @@ function onDayPlanTableAction(event) {
       }
     }
 
+    noteDocumentMutation();
     renderAll();
   }
 }
@@ -3064,6 +3212,7 @@ function onDayVerificationSave() {
     .filter((item) => item.dayId !== selectedVerificationDayId)
     .concat(nextRows);
   dayPlan.verificationLocked = true;
+  noteDocumentMutation();
   renderAll();
   alert("Day verification saved. School statuses updated.");
 }
@@ -3084,6 +3233,7 @@ function onDayVerificationEdit() {
     return;
   }
   dayPlan.verificationLocked = false;
+  noteDocumentMutation();
   renderAll();
   alert("Verification unlocked. You can edit and save again.");
 }
@@ -3107,6 +3257,7 @@ function onPlannerEdit() {
   }
 
   dayPlan.locked = false;
+  noteDocumentMutation();
   renderAll();
   alert("Day plan unlocked. You can now adjust assignments and save again.");
 }
@@ -4462,6 +4613,7 @@ function onPlannerSave() {
   delete uiState.plannerDraftCache[getPlannerDraftCacheKey(draft.dayId)];
 
   loadPlannerDraft(draft.dayId);
+  noteDocumentMutation();
   renderAll();
 
   if (cleanedCount > 0) {
@@ -4957,6 +5109,7 @@ function importSchoolsFromRows(rows) {
   }
 
   if (imported > 0) {
+    noteDocumentMutation();
     renderAll();
   }
 
@@ -5679,6 +5832,7 @@ async function mergeRouteCacheEntries(entries) {
     upsertRouteCacheEntry(entry);
   });
   await replaceRouteCacheForCityInDb(getCurrentCity()?.id || "", state.routeCache);
+  noteDocumentMutation();
   return entries.length;
 }
 
@@ -5701,26 +5855,21 @@ async function onUploadToApi() {
   const baseUrl = resolveApiBaseUrl();
   const jwtInput = el.apiJwtToken || document.getElementById("api-jwt-token");
   const token = ((jwtInput && jwtInput.value) || localStorage.getItem("api_jwt_token") || "").trim();
-  const status = el.uploadToApiStatus;
 
   if (!token) {
-    status.textContent = "Enter JWT token first.";
-    status.style.color = "var(--color-error, #c0392b)";
+    syncState.uploadState = "failed";
+    syncState.lastError = "Enter JWT token first.";
+    renderSyncStatus();
     return;
   }
   if (EDIT_MODE) {
     if (!confirm("This will update the shared document. Continue?")) return;
   }
 
-  const payload = {
-    schemaVersion: state.schemaVersion,
-    selectedCityId: state.selectedCityId,
-    cities: state.cities
-  };
-
-  status.textContent = EDIT_MODE ? "Updating shared document…" : "Uploading…";
-  status.style.color = "";
-  el.uploadToApi.disabled = true;
+  const payload = buildUploadPayload();
+  syncState.uploadState = "uploading";
+  syncState.lastError = "";
+  renderSyncStatus();
 
   try {
     const fetchUrl = EDIT_MODE ? `${baseUrl}/documents/${EDIT_MODE.documentId}` : `${baseUrl}/documents`;
@@ -5737,26 +5886,23 @@ async function onUploadToApi() {
     if (res.ok) {
       const data = await res.json().catch(() => ({}));
       const shareUrl = data.url || "";
+      markCurrentStateAsUploaded();
       if (EDIT_MODE) {
-        status.textContent = "Shared document updated successfully.";
-        status.style.color = "var(--color-success, #27ae60)";
+        renderSyncStatus();
       } else if (shareUrl) {
         window.location.href = shareUrl;
         return;
-      } else {
-        status.textContent = "Uploaded successfully.";
-        status.style.color = "var(--color-success, #27ae60)";
       }
     } else {
       const text = await res.text().catch(() => "");
-      status.textContent = `Error ${res.status}: ${text || res.statusText}`;
-      status.style.color = "var(--color-error, #c0392b)";
+      syncState.uploadState = "failed";
+      syncState.lastError = `Error ${res.status}: ${text || res.statusText}`;
+      renderSyncStatus();
     }
   } catch (err) {
-    status.textContent = `Failed: ${err.message}`;
-    status.style.color = "var(--color-error, #c0392b)";
-  } finally {
-    el.uploadToApi.disabled = false;
+    syncState.uploadState = "failed";
+    syncState.lastError = `Failed: ${err.message}`;
+    renderSyncStatus();
   }
 }
 
@@ -5788,6 +5934,7 @@ async function onImportJson(event) {
     resetResearcherForm();
     resetDayPlanForm();
 
+    noteDocumentMutation();
     renderAll();
     renderRouteCacheStatus();
     alert("JSON imported successfully.");
@@ -5830,6 +5977,7 @@ async function loadEditDocumentIfNeeded() {
     resetDayPlanForm();
     uiState.mainView = "city-setup";
     renderAll();
+    markCurrentStateAsUploaded();
     renderRouteCacheStatus();
   } catch (err) {
     console.error(err);

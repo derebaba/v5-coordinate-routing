@@ -9,8 +9,22 @@
 <body>
   <main class="container">
     <header class="page-header">
-      <h1>Fieldwork Scheduler</h1>
-      <p>Manual-first planning for schools, daily researcher availability, and allocations.</p>
+      <div class="page-header-top">
+        <div class="page-header-copy">
+          <h1>Fieldwork Scheduler</h1>
+          <p>Manual-first planning for schools, daily researcher availability, and allocations.</p>
+        </div>
+        <div class="header-upload-area">
+          <div class="header-upload-controls">
+            <input id="api-jwt-token" class="header-token-input" type="password" placeholder="JWT token">
+            <button id="upload-to-api" type="button">Upload to API</button>
+          </div>
+          <div class="header-sync-status" aria-live="polite">
+            <span id="sync-status-badge" class="sync-status-badge">Local</span>
+            <span id="sync-status-message" class="sync-status-message">No upload yet.</span>
+          </div>
+        </div>
+      </div>
       <div class="header-nav">
         <div class="header-main-setup">
           <button id="main-setup-button" class="sheet-tab active" data-view="main-setup" type="button">Main Setup</button>
@@ -26,6 +40,10 @@
         </div>
       </div>
     </header>
+
+    <div id="floating-sync-warning" class="floating-sync-warning" hidden aria-live="polite">
+      <strong id="floating-sync-warning-title">Unsynced changes</strong>
+    </div>
 
     <section class="panel" id="panel-restore" data-view-section="main-setup">
       <div class="panel-header">
@@ -410,11 +428,6 @@
         <h3 class="panel-subheader">Backup</h3>
         <div class="actions">
           <button id="export-json" type="button">Export JSON</button>
-          <button id="upload-to-api" type="button">Upload to API</button>
-          <span id="upload-to-api-status" style="font-size:0.85em;margin-left:8px;"></span>
-        </div>
-        <div class="actions" id="api-config-row" style="margin-top:8px;gap:6px;flex-wrap:wrap;">
-          <input id="api-jwt-token" type="password" placeholder="JWT token" style="flex:3;min-width:200px;">
         </div>
       </div>
     </section>

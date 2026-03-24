@@ -42,6 +42,115 @@ body {
   color: var(--muted);
 }
 
+.page-header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.page-header-copy {
+  min-width: 0;
+}
+
+.header-upload-area {
+  min-width: min(360px, 100%);
+  display: grid;
+  gap: 8px;
+  justify-items: end;
+}
+
+.header-upload-controls {
+  width: 100%;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.header-token-input {
+  min-width: 220px;
+  flex: 1 1 220px;
+}
+
+.header-sync-status {
+  width: 100%;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.sync-status-badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  background: #eef2ed;
+  color: #47604d;
+  border: 1px solid #c8d8cb;
+}
+
+.sync-status-badge.is-synced {
+  background: var(--ok-bg);
+  border-color: var(--ok-line);
+  color: #22573b;
+}
+
+.sync-status-badge.is-unsynced,
+.sync-status-badge.is-failed {
+  background: var(--err-bg);
+  border-color: var(--err-line);
+  color: #8a2e1f;
+}
+
+.sync-status-badge.is-uploading {
+  background: #eef5ff;
+  border-color: #a8c3eb;
+  color: #2d5d9f;
+}
+
+.sync-status-message {
+  font-size: 0.88rem;
+  color: var(--muted);
+  text-align: right;
+}
+
+.floating-sync-warning[hidden] {
+  display: none;
+}
+
+.floating-sync-warning {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 1000;
+  max-width: min(420px, calc(100vw - 32px));
+  display: grid;
+  gap: 4px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--err-line);
+  background: rgba(255, 240, 240, 0.97);
+  color: #7a2419;
+  box-shadow: 0 10px 28px rgba(77, 24, 24, 0.18);
+}
+
+.floating-sync-warning strong {
+  font-size: 0.92rem;
+}
+
+.floating-sync-warning span {
+  font-size: 0.88rem;
+  line-height: 1.35;
+}
+
 .session-badge {
   display: inline-block;
   margin-top: 8px;
@@ -219,6 +328,24 @@ body {
 @media (max-width: 780px) {
   .setup-progress-step::after {
     display: none;
+  }
+
+  .page-header-top {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .header-upload-area {
+    justify-items: stretch;
+  }
+
+  .header-upload-controls,
+  .header-sync-status {
+    justify-content: flex-start;
+  }
+
+  .sync-status-message {
+    text-align: left;
   }
 }
 

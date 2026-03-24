@@ -46,10 +46,22 @@ var app = builder.Build();
 
 // --- Middleware ---
 app.UseCors("Frontend");
-app.UseStaticFiles();
 
-app.MapGet("/", async (IWebHostEnvironment env) =>
+void ApplyNoCacheHeaders(HttpResponse response)
 {
+    response.Headers.CacheControl = "no-store, no-cache, must-revalidate";
+    response.Headers.Pragma = "no-cache";
+    response.Headers.Expires = "0";
+}
+
+app.UseStaticFiles(new StaticFileOptions
+{
+    OnPrepareResponse = ctx => ApplyNoCacheHeaders(ctx.Context.Response)
+});
+
+app.MapGet("/", async (HttpContext ctx, IWebHostEnvironment env) =>
+{
+    ApplyNoCacheHeaders(ctx.Response);
     var filePath = Path.Combine(env.WebRootPath, "index.html");
     if (!File.Exists(filePath))
         return Results.NotFound();
@@ -190,8 +202,9 @@ app.MapPut("/documents/{id}", async (string id, HttpContext ctx, IMongoDatabase 
     return Results.Json(new { id, url, createdAt });
 });
 
-app.MapGet("/viewer/{id}", async (string id, IWebHostEnvironment env) =>
+app.MapGet("/viewer/{id}", async (string id, HttpContext ctx, IWebHostEnvironment env) =>
 {
+    ApplyNoCacheHeaders(ctx.Response);
     var filePath = Path.Combine(env.WebRootPath, "viewer.html");
     if (!File.Exists(filePath))
         return Results.NotFound();
@@ -199,8 +212,9 @@ app.MapGet("/viewer/{id}", async (string id, IWebHostEnvironment env) =>
     return Results.Content(html, "text/html");
 });
 
-app.MapGet("/edit/{id}", async (string id, IWebHostEnvironment env) =>
+app.MapGet("/edit/{id}", async (string id, HttpContext ctx, IWebHostEnvironment env) =>
 {
+    ApplyNoCacheHeaders(ctx.Response);
     var filePath = Path.Combine(env.WebRootPath, "index.html");
     if (!File.Exists(filePath))
         return Results.NotFound();
