@@ -5384,6 +5384,8 @@ async function onRouteBuilderCalculate() {
     return;
   }
   const schools = getRouteBuilderSchoolsFromState();
+  console.log("[DEBUG-ROUTE] First 3 schools from state:", schools.slice(0, 3).map(s => ({ name: s.name, lat: s.latitude, lng: s.longitude })));
+  console.log("[DEBUG-ROUTE] Raw state.schools first 3:", state.schools.slice(0, 3).map(s => ({ name: s.name, lat: s.latitude, lng: s.longitude })));
   const missingCoordinateSchools = schools.filter((school) => !hasValidCoordinates(school));
   const apiKey = String(el.routeBuilderApiKey.value || "").trim();
   if (schools.length < 2) {
