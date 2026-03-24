@@ -43,7 +43,8 @@ const uiState = {
     schools: [],
     entries: [],
     running: false
-  }
+  },
+  verificationDraft: {}
 };
 
 const syncState = {
@@ -1270,6 +1271,7 @@ function resetCityScopedUiForSwitch() {
   closePlannerNoteEditor();
   uiState.selectedDayId = "";
   uiState.selectedVerificationDayId = "";
+  uiState.verificationDraft = {};
   uiState.plannerDraft = null;
   uiState.plannerDirty = false;
   uiState.lastValidation = null;
@@ -3032,13 +3034,16 @@ function renderDayVerificationPanel(preferredDayId = "") {
       .map((item) => [item.schoolId, item])
   );
 
+  const dayDraft = uiState.verificationDraft[dayId] || {};
+
   el.dayVerificationBody.innerHTML = rows
     .map((row) => {
       const existing = verifMap.get(row.schoolId);
-      const outcome = existing?.outcome || "";
+      const draft = dayDraft[row.schoolId];
+      const outcome = draft ? draft.outcome : (existing?.outcome || "");
       const school = state.schools.find((item) => item.id === row.schoolId) || null;
       const labels = getSchoolClassroomLabels(school);
-      const selectedLabels = getVerificationRemainingLabels(existing, school);
+      const selectedLabels = draft ? draft.remainingLabels : getVerificationRemainingLabels(existing, school);
       const selectedSet = new Set(selectedLabels.map((item) => normalizeLookup(item)));
       const remainingClassrooms = outcome === "incomplete" ? selectedLabels.length : 0;
       const checkboxesHtml = labels.length
@@ -3144,6 +3149,22 @@ function onDayVerificationChange(event) {
   if (countNode) {
     countNode.textContent = String(isIncomplete ? count : 0);
   }
+
+  const schoolId = String(row.dataset.schoolId || "").trim();
+  const outcome = String(select?.value || "").trim();
+  const checkedLabels = checkboxes
+    .filter((cb) => cb.checked)
+    .map((cb) => String(cb.value || "").trim())
+    .filter(Boolean);
+  if (selectedVerificationDayId && schoolId) {
+    if (!uiState.verificationDraft[selectedVerificationDayId]) {
+      uiState.verificationDraft[selectedVerificationDayId] = {};
+    }
+    uiState.verificationDraft[selectedVerificationDayId][schoolId] = {
+      outcome,
+      remainingLabels: checkedLabels
+    };
+  }
 }
 
 function onDayVerificationSave() {
@@ -3212,6 +3233,7 @@ function onDayVerificationSave() {
     .filter((item) => item.dayId !== selectedVerificationDayId)
     .concat(nextRows);
   dayPlan.verificationLocked = true;
+  delete uiState.verificationDraft[selectedVerificationDayId];
   noteDocumentMutation();
   renderAll();
   alert("Day verification saved. School statuses updated.");
