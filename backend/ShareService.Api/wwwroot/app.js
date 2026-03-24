@@ -3452,7 +3452,7 @@ function getPlannerRouteInsights(draft) {
       if (accommSegment.status === "ok") {
         accommSegment.message = accommSegment.message.replace("Drive:", "From accommodation:");
       } else {
-        accommSegment.message = "From accommodation: unavailable";
+        accommSegment.message = accommSegment.message.replace("Drive:", "From accommodation:");
       }
       rowHints["__accommodation_to_first__"] = accommSegment;
       if (accommSegment.status === "ok" && Number.isFinite(accommSegment.durationMinutes)) {
