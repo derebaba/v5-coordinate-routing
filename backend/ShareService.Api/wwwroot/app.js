@@ -180,6 +180,8 @@ renderAll();
 bootstrapRouteCachePersistence();
 if (EDIT_MODE) {
   loadEditDocumentIfNeeded();
+} else {
+  tryAutoLoadDocument();
 }
 
 function bindEvents() {
@@ -5965,6 +5967,26 @@ async function onImportJson(event) {
     alert("Could not import JSON. Please check the file format.");
   } finally {
     event.target.value = "";
+  }
+}
+
+async function tryAutoLoadDocument() {
+  const token = (localStorage.getItem("api_jwt_token") || "").trim();
+  if (!token) return;
+  const apiBase = resolveApiBaseUrl();
+  try {
+    const res = await fetch(`${apiBase}/documents`, {
+      headers: { "Authorization": `Bearer ${token}` }
+    });
+    if (!res.ok) return;
+    const docs = await res.json();
+    if (!Array.isArray(docs) || docs.length === 0) return;
+    const docId = docs[0].id;
+    if (docId) {
+      window.location.href = `${window.location.origin}/edit/${docId}`;
+    }
+  } catch (err) {
+    console.error("Auto-load document failed:", err);
   }
 }
 

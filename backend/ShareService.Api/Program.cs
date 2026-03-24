@@ -87,6 +87,33 @@ app.MapGet("/health", async (IMongoClient client) =>
     return Results.Ok(new { status = "ok" });
 });
 
+app.MapGet("/documents", async (HttpContext ctx, IMongoDatabase db) =>
+{
+    if (!IsAuthorized(ctx))
+        return Results.Json(new { error = "Missing or invalid bearer token." }, statusCode: 401);
+
+    var collection = db.GetCollection<BsonDocument>("documents");
+    var projection = Builders<BsonDocument>.Projection
+        .Include("_id")
+        .Include("createdAt")
+        .Include("updatedAt");
+
+    var docs = await collection
+        .Find(new BsonDocument())
+        .Project(projection)
+        .SortByDescending(d => d["updatedAt"])
+        .ToListAsync();
+
+    var result = docs.Select(d => new
+    {
+        id = d["_id"].AsString,
+        createdAt = d["createdAt"].ToUniversalTime(),
+        updatedAt = d["updatedAt"].ToUniversalTime()
+    });
+
+    return Results.Json(result);
+});
+
 app.MapPost("/documents", async (HttpContext ctx, IMongoDatabase db) =>
 {
     if (!IsAuthorized(ctx))
