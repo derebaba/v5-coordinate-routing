@@ -148,6 +148,11 @@ const el = {
   routeBuilderExportJson: document.getElementById("route-builder-export-json"),
   routeBuilderUseSession: document.getElementById("route-builder-use-session"),
   routeBuilderStatus: document.getElementById("route-builder-status"),
+  accommodationLat: document.getElementById("accommodation-lat"),
+  accommodationLng: document.getElementById("accommodation-lng"),
+  accommodationSave: document.getElementById("accommodation-save"),
+  accommodationClear: document.getElementById("accommodation-clear"),
+  accommodationStatus: document.getElementById("accommodation-status"),
   dayVerificationPanel: document.getElementById("day-verification-panel"),
   dayVerificationTabs: document.getElementById("day-verification-tabs"),
   dayVerificationBody: document.getElementById("day-verification-body"),
@@ -241,6 +246,8 @@ function bindEvents() {
 
   el.importRouteCacheInput.addEventListener("change", onImportRouteCache);
   el.routeBuilderCalc.addEventListener("click", onRouteBuilderCalculate);
+  el.accommodationSave.addEventListener("click", onAccommodationSave);
+  el.accommodationClear.addEventListener("click", onAccommodationClear);
   el.routeBuilderExportCsv.addEventListener("click", onRouteBuilderExportCsv);
   el.routeBuilderExportJson.addEventListener("click", onRouteBuilderExportJson);
   el.routeBuilderUseSession.addEventListener("click", onRouteBuilderUseInSession);
@@ -425,7 +432,9 @@ function createEmptyCity(name) {
     researcherAssignments: [],
     dayVerifications: [],
     routeCache: [],
-    manualFollowUpWarnings: []
+    manualFollowUpWarnings: [],
+    accommodationLatitude: null,
+    accommodationLongitude: null
   };
 }
 
@@ -950,6 +959,13 @@ function renderCitySetupProgress() {
       doneText: `${city.schools.length} school(s)`
     },
     {
+      label: "Accommodation",
+      targetId: "setup-accommodation",
+      done: Number.isFinite(parseOptionalNumber(city.accommodationLatitude)) && Number.isFinite(parseOptionalNumber(city.accommodationLongitude)),
+      pendingText: "Not yet set",
+      doneText: "Coordinates set"
+    },
+    {
       label: "Distance Cache",
       targetId: "panel-distance",
       done: routeCacheCount > 0,
@@ -1173,7 +1189,9 @@ function normalizeState(parsed) {
           resolutionKey: String(item.resolutionKey || "").trim(),
           createdAt: String(item.createdAt || "").trim() || new Date().toISOString()
         }))
-        .filter((item) => item.title && item.message && item.location && item.resolutionKey)
+        .filter((item) => item.title && item.message && item.location && item.resolutionKey),
+      accommodationLatitude: parseOptionalNumber(citySafe.accommodationLatitude),
+      accommodationLongitude: parseOptionalNumber(citySafe.accommodationLongitude)
     };
   }
 
@@ -1222,6 +1240,7 @@ function renderAll() {
   renderFollowUpPanel("school-edit", el.schoolEditWarningPanel, uiState.schoolEditLocalWarnings);
   renderRouteCacheStatus();
   renderRouteBuilderStatus();
+  renderAccommodationStatus();
   renderSchools();
   renderDistrictProgress();
   renderResearcherAvailabilityOptions();
@@ -3416,6 +3435,8 @@ function getPlannerRouteInsights(draft) {
   const availableSet = new Set(draft.availableResearcherIds || []);
   const researcherMap = getResearcherMap();
 
+  const accommodation = getAccommodationAsPseudoSchool();
+
   draft.assignments.forEach((assignment) => {
     if (!availableSet.has(assignment.researcherId)) {
       return;
@@ -3424,6 +3445,21 @@ function getPlannerRouteInsights(draft) {
     const rowHints = {};
     let totalMinutes = 0;
     let hasKnownSegment = false;
+
+    if (accommodation && orderedRows.length > 0) {
+      const firstRow = orderedRows[0];
+      const accommSegment = getRouteSegmentForSchools(ACCOMMODATION_PSEUDO_ID, firstRow.schoolId);
+      if (accommSegment.status === "ok") {
+        accommSegment.message = accommSegment.message.replace("Drive:", "From accommodation:");
+      } else {
+        accommSegment.message = "From accommodation: unavailable";
+      }
+      rowHints["__accommodation_to_first__"] = accommSegment;
+      if (accommSegment.status === "ok" && Number.isFinite(accommSegment.durationMinutes)) {
+        totalMinutes += Number(accommSegment.durationMinutes);
+        hasKnownSegment = true;
+      }
+    }
 
     for (let i = 1; i < orderedRows.length; i += 1) {
       const fromRow = orderedRows[i - 1];
@@ -3603,6 +3639,7 @@ function renderPlannerRows() {
       const lockedDisabled = isLocked ? "disabled" : "";
       const primarySarmalChecked = assignment.primarySarmal ? "checked" : "";
       const secondarySarmalChecked = assignment.secondarySarmal ? "checked" : "";
+      const accommodationRouteHint = renderRouteHint(assignment.id, "__accommodation_to_first__");
       const primaryRouteHint = renderRouteHint(assignment.id, "primary");
       const secondaryRouteHint = renderRouteHint(assignment.id, "secondary");
 
@@ -3699,6 +3736,7 @@ function renderPlannerRows() {
               <option value="">Select primary school</option>
               ${primaryOptions}
             </select>
+            ${accommodationRouteHint}
             ${primaryRouteHint}
           </td>
           <td class="planner-classrooms-cell"><input type="number" min="1" step="1" data-field="primaryClassrooms" value="${Number(assignment.primaryClassrooms || 0)}" ${lockedDisabled}></td>
@@ -5263,6 +5301,76 @@ function hasValidCoordinates(school) {
   return Number.isFinite(lat) && Number.isFinite(lng);
 }
 
+const ACCOMMODATION_PSEUDO_ID = "__accommodation__";
+
+function getAccommodationAsPseudoSchool() {
+  const city = getCurrentCity();
+  if (!city) return null;
+  const lat = parseOptionalNumber(city.accommodationLatitude);
+  const lng = parseOptionalNumber(city.accommodationLongitude);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+  return {
+    id: ACCOMMODATION_PSEUDO_ID,
+    name: "Accommodation",
+    district: "",
+    latitude: lat,
+    longitude: lng,
+    addressLine: "",
+    city: "",
+    country: ""
+  };
+}
+
+function onAccommodationSave() {
+  const city = getCurrentCity();
+  if (!city) {
+    alert("Select a city first.");
+    return;
+  }
+  const latStr = String(el.accommodationLat.value || "").trim();
+  const lngStr = String(el.accommodationLng.value || "").trim();
+  const lat = parseOptionalNumber(latStr);
+  const lng = parseOptionalNumber(lngStr);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+    alert("Please enter valid latitude and longitude values.");
+    return;
+  }
+  city.accommodationLatitude = lat;
+  city.accommodationLongitude = lng;
+  noteDocumentMutation();
+  renderAccommodationStatus();
+}
+
+function onAccommodationClear() {
+  const city = getCurrentCity();
+  if (!city) return;
+  city.accommodationLatitude = null;
+  city.accommodationLongitude = null;
+  el.accommodationLat.value = "";
+  el.accommodationLng.value = "";
+  noteDocumentMutation();
+  renderAccommodationStatus();
+}
+
+function renderAccommodationStatus() {
+  const city = getCurrentCity();
+  if (!city) {
+    el.accommodationStatus.textContent = "No city selected.";
+    return;
+  }
+  const lat = parseOptionalNumber(city.accommodationLatitude);
+  const lng = parseOptionalNumber(city.accommodationLongitude);
+  if (Number.isFinite(lat) && Number.isFinite(lng)) {
+    el.accommodationLat.value = lat;
+    el.accommodationLng.value = lng;
+    el.accommodationStatus.textContent = `Accommodation set: ${lat}, ${lng}`;
+  } else {
+    el.accommodationLat.value = "";
+    el.accommodationLng.value = "";
+    el.accommodationStatus.textContent = "No accommodation set for this city.";
+  }
+}
+
 async function onRouteBuilderCalculate() {
   if (uiState.routeBuilder.running) {
     alert("Distance calculation is already running.");
@@ -5299,14 +5407,16 @@ async function onRouteBuilderCalculate() {
 
   const entries = [];
   let completedPairs = 0;
-  const totalPairs = schools.length * Math.max(0, schools.length - 1);
+  const accommodation = getAccommodationAsPseudoSchool();
+  const allOrigins = accommodation ? [...schools, accommodation] : schools;
+  const totalPairs = schools.length * Math.max(0, schools.length - 1) + (accommodation ? schools.length : 0);
 
   try {
     renderRouteBuilderStatus("Loading Google Maps service...", "running");
     await loadGoogleMapsSdk(apiKey);
     const jobs = [];
-    for (let i = 0; i < schools.length; i += 1) {
-      const fromSchool = schools[i];
+    for (let i = 0; i < allOrigins.length; i += 1) {
+      const fromSchool = allOrigins[i];
       const destinations = schools.filter((school) => school.id !== fromSchool.id);
       const chunks = chunkList(destinations, 25);
       chunks.forEach((group) => jobs.push({ fromSchool, group }));
@@ -5805,6 +5915,9 @@ function normalizeRouteCacheEntries(rawEntries) {
 
 function resolveImportedSchoolId(rawId, rawName, rawDistrict) {
   const id = String(rawId || "").trim();
+  if (id === ACCOMMODATION_PSEUDO_ID) {
+    return ACCOMMODATION_PSEUDO_ID;
+  }
   if (id && state.schools.some((school) => school.id === id)) {
     return id;
   }
