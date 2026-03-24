@@ -5414,16 +5414,14 @@ async function onRouteBuilderCalculate() {
 
   const entries = [];
   let completedPairs = 0;
-  const accommodation = getAccommodationAsPseudoSchool();
-  const allOrigins = accommodation ? [...schools, accommodation] : schools;
-  const totalPairs = schools.length * Math.max(0, schools.length - 1) + (accommodation ? schools.length : 0);
+  const totalPairs = schools.length * Math.max(0, schools.length - 1);
 
   try {
     renderRouteBuilderStatus("Loading Google Maps service...", "running");
     await loadGoogleMapsSdk(apiKey);
     const jobs = [];
-    for (let i = 0; i < allOrigins.length; i += 1) {
-      const fromSchool = allOrigins[i];
+    for (let i = 0; i < schools.length; i += 1) {
+      const fromSchool = schools[i];
       const destinations = schools.filter((school) => school.id !== fromSchool.id);
       const chunks = chunkList(destinations, 25);
       chunks.forEach((group) => jobs.push({ fromSchool, group }));
@@ -5459,10 +5457,37 @@ async function onRouteBuilderCalculate() {
           });
         });
         completedPairs += job.group.length;
-        renderRouteBuilderStatus(`Calculating... ${completedPairs}/${totalPairs} pairs`, "running");
+        renderRouteBuilderStatus(`Calculating... ${completedPairs}/${totalPairs} school pairs`, "running");
       }
     });
     await Promise.all(workers);
+
+    const accommodation = getAccommodationAsPseudoSchool();
+    if (accommodation) {
+      renderRouteBuilderStatus("Calculating accommodation routes...", "running");
+      const accommService = new google.maps.DistanceMatrixService();
+      const accommChunks = chunkList(schools, 25);
+      for (const chunk of accommChunks) {
+        const result = await fetchDistanceMatrixForBuilder(accommService, accommodation, chunk);
+        const fetchedAt = new Date().toISOString();
+        chunk.forEach((toSchool, idx) => {
+          const item = result[idx] || { status: "error", durationMinutes: null, distanceKm: null };
+          entries.push({
+            fromSchoolId: accommodation.id,
+            fromSchoolName: accommodation.name,
+            fromDistrict: "",
+            toSchoolId: toSchool.id,
+            toSchoolName: toSchool.name,
+            toDistrict: toSchool.district,
+            durationMinutes: item.durationMinutes,
+            distanceKm: item.distanceKm,
+            status: item.status,
+            fetchedAt,
+            provider: "google"
+          });
+        });
+      }
+    }
 
     uiState.routeBuilder.entries = entries;
     const normalized = normalizeRouteCacheEntries(entries);
@@ -5471,8 +5496,9 @@ async function onRouteBuilderCalculate() {
     renderPlanner();
     const ok = entries.filter((item) => item.status === "ok").length;
     const failed = entries.length - ok;
+    const accommNote = getAccommodationAsPseudoSchool() ? ` (incl. accommodation)` : "";
     renderRouteBuilderStatus(
-      `Done. ${entries.length} pairs calculated (${ok} ok, ${failed} unresolved). Loaded ${loadedIntoSession} pairs into this session.`,
+      `Done. ${entries.length} pairs calculated (${ok} ok, ${failed} unresolved)${accommNote}. Loaded ${loadedIntoSession} pairs into this session.`,
       "success"
     );
   } catch (error) {
