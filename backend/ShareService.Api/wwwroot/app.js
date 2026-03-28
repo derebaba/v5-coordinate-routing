@@ -142,7 +142,6 @@ const el = {
   printReport: document.getElementById("print-report"),
   routeCacheStatus: document.getElementById("route-cache-status"),
   importRouteCacheInput: document.getElementById("import-route-cache-input"),
-  routeBuilderApiKey: document.getElementById("route-builder-api-key"),
   routeBuilderCalc: document.getElementById("route-builder-calc"),
   routeBuilderExportCsv: document.getElementById("route-builder-export-csv"),
   routeBuilderExportJson: document.getElementById("route-builder-export-json"),
@@ -166,8 +165,7 @@ const el = {
   importJsonInput: document.getElementById("import-json-input")
 };
 
-let googleMapsSdkPromise = null;
-let googleMapsSdkLoadedKey = "";
+const OSRM_TABLE_URL = "https://router.project-osrm.org/table/v1/driving";
 const ROUTE_BUILDER_MAX_CONCURRENCY = 4;
 let routeCacheDbPromise = null;
 
@@ -5271,7 +5269,6 @@ async function onRouteBuilderCalculate() {
   }
   const schools = getRouteBuilderSchoolsFromState();
   const missingCoordinateSchools = schools.filter((school) => !hasValidCoordinates(school));
-  const apiKey = String(el.routeBuilderApiKey.value || "").trim();
   if (schools.length < 2) {
     alert(`Need at least 2 schools in this session. Current count: ${schools.length}.`);
     renderRouteBuilderStatus("Need at least 2 schools in the Schools table.", "error");
@@ -5287,76 +5284,61 @@ async function onRouteBuilderCalculate() {
     renderRouteBuilderStatus(`Missing latitude/longitude for ${missingCoordinateSchools.length} school(s).`, "error");
     return;
   }
-  if (!apiKey) {
-    alert("Please enter Google Maps API key.");
-    renderRouteBuilderStatus("Please enter Google Maps API key.", "error");
-    return;
-  }
 
   uiState.routeBuilder.running = true;
   uiState.routeBuilder.schools = schools;
   uiState.routeBuilder.entries = [];
-  renderRouteBuilderStatus("Starting distance calculation...", "running");
-
-  const entries = [];
-  let completedPairs = 0;
-  const totalPairs = schools.length * Math.max(0, schools.length - 1);
+  renderRouteBuilderStatus("Calculating distances via OSRM...", "running");
 
   try {
-    renderRouteBuilderStatus("Loading Google Maps service...", "running");
-    await loadGoogleMapsSdk(apiKey);
-    const jobs = [];
-    for (let i = 0; i < schools.length; i += 1) {
-      const fromSchool = schools[i];
-      const destinations = schools.filter((school) => school.id !== fromSchool.id);
-      const chunks = chunkList(destinations, 25);
-      chunks.forEach((group) => jobs.push({ fromSchool, group }));
+    const coords = schools.map((s) => `${Number(s.longitude)},${Number(s.latitude)}`).join(";");
+    const url = `${OSRM_TABLE_URL}/${coords}?annotations=duration,distance`;
+
+    const res = await fetch(url);
+    if (!res.ok) {
+      throw new Error(`OSRM request failed (${res.status}): ${await res.text().catch(() => res.statusText)}`);
+    }
+    const data = await res.json();
+    if (data.code !== "Ok") {
+      throw new Error(`OSRM error: ${data.code} - ${data.message || "unknown"}`);
     }
 
-    const workerCount = Math.min(ROUTE_BUILDER_MAX_CONCURRENCY, Math.max(1, jobs.length));
-    let nextJobIndex = 0;
-    const workers = Array.from({ length: workerCount }, async () => {
-      const service = new google.maps.DistanceMatrixService();
-      while (nextJobIndex < jobs.length) {
-        const jobIndex = nextJobIndex;
-        nextJobIndex += 1;
-        const job = jobs[jobIndex];
-        if (!job) {
-          continue;
-        }
-        const result = await fetchDistanceMatrixForBuilder(service, job.fromSchool, job.group);
-        const fetchedAt = new Date().toISOString();
-        job.group.forEach((toSchool, idx) => {
-          const item = result[idx] || { status: "error", durationMinutes: null, distanceKm: null };
-          entries.push({
-            fromSchoolId: job.fromSchool.id,
-            fromSchoolName: job.fromSchool.name,
-            fromDistrict: job.fromSchool.district,
-            toSchoolId: toSchool.id,
-            toSchoolName: toSchool.name,
-            toDistrict: toSchool.district,
-            durationMinutes: item.durationMinutes,
-            distanceKm: item.distanceKm,
-            status: item.status,
-            fetchedAt,
-            provider: "google"
-          });
+    const durations = data.durations;
+    const distances = data.distances;
+    const entries = [];
+    const fetchedAt = new Date().toISOString();
+
+    for (let i = 0; i < schools.length; i += 1) {
+      for (let j = 0; j < schools.length; j += 1) {
+        if (i === j) continue;
+        const durationSec = durations[i][j];
+        const distanceM = distances[i][j];
+        const ok = durationSec !== null && Number.isFinite(durationSec);
+        entries.push({
+          fromSchoolId: schools[i].id,
+          fromSchoolName: schools[i].name,
+          fromDistrict: schools[i].district,
+          toSchoolId: schools[j].id,
+          toSchoolName: schools[j].name,
+          toDistrict: schools[j].district,
+          durationMinutes: ok ? Math.max(1, Math.round(durationSec / 60)) : null,
+          distanceKm: ok && Number.isFinite(distanceM) ? Math.round((distanceM / 1000) * 10) / 10 : null,
+          status: ok ? "ok" : "error",
+          fetchedAt,
+          provider: "osrm"
         });
-        completedPairs += job.group.length;
-        renderRouteBuilderStatus(`Calculating... ${completedPairs}/${totalPairs} pairs`, "running");
       }
-    });
-    await Promise.all(workers);
+    }
 
     uiState.routeBuilder.entries = entries;
     const normalized = normalizeRouteCacheEntries(entries);
     const loadedIntoSession = await mergeRouteCacheEntries(normalized.entries);
     renderRouteCacheStatus();
     renderPlanner();
-    const ok = entries.filter((item) => item.status === "ok").length;
-    const failed = entries.length - ok;
+    const okCount = entries.filter((item) => item.status === "ok").length;
+    const failed = entries.length - okCount;
     renderRouteBuilderStatus(
-      `Done. ${entries.length} pairs calculated (${ok} ok, ${failed} unresolved). Loaded ${loadedIntoSession} pairs into this session.`,
+      `Done. ${entries.length} pairs calculated (${okCount} ok, ${failed} unresolved). Loaded ${loadedIntoSession} pairs into this session.`,
       "success"
     );
   } catch (error) {
@@ -5369,128 +5351,6 @@ async function onRouteBuilderCalculate() {
       : (uiState.routeBuilder.entries.length ? "success" : "");
     renderRouteBuilderStatus(el.routeBuilderStatus.textContent, tone);
   }
-}
-
-async function fetchDistanceMatrixForBuilder(service, fromSchool, destinations) {
-  const origin = buildSchoolLocationQuery(fromSchool);
-  const destinationQueries = destinations.map((school) => buildSchoolLocationQuery(school));
-  if (!origin || destinationQueries.some((item) => !item)) {
-    return destinations.map(() => ({ status: "error", durationMinutes: null, distanceKm: null }));
-  }
-
-  const response = await requestDistanceMatrix(service, origin, destinationQueries);
-  if (response.status !== "OK") {
-    return destinations.map(() => ({ status: "error", durationMinutes: null, distanceKm: null }));
-  }
-
-  const elements = response.rows?.[0]?.elements || [];
-  return destinations.map((_, idx) => normalizeDistanceMatrixElement(elements[idx]));
-}
-
-function buildSchoolLocationQuery(school) {
-  if (!hasValidCoordinates(school)) {
-    return null;
-  }
-  return {
-    lat: Number(school.latitude),
-    lng: Number(school.longitude)
-  };
-}
-
-async function getGoogleDistanceMatrixService(apiKey) {
-  await loadGoogleMapsSdk(apiKey);
-  return new google.maps.DistanceMatrixService();
-}
-
-function loadGoogleMapsSdk(apiKey) {
-  if (window.google?.maps?.DistanceMatrixService && googleMapsSdkLoadedKey === apiKey) {
-    return Promise.resolve();
-  }
-  if (window.google?.maps?.DistanceMatrixService && googleMapsSdkLoadedKey && googleMapsSdkLoadedKey !== apiKey) {
-    return Promise.reject(new Error("Google Maps SDK is already loaded with a different API key. Refresh the page to use a new key."));
-  }
-  if (googleMapsSdkPromise) {
-    return googleMapsSdkPromise;
-  }
-
-  googleMapsSdkPromise = new Promise((resolve, reject) => {
-    const callbackName = `__gmaps_ready_${Date.now()}`;
-    const timeout = setTimeout(() => {
-      cleanup();
-      googleMapsSdkPromise = null;
-      reject(new Error("Google Maps SDK load timed out."));
-    }, 15000);
-
-    function cleanup() {
-      clearTimeout(timeout);
-      delete window[callbackName];
-    }
-
-    window[callbackName] = () => {
-      cleanup();
-      googleMapsSdkLoadedKey = apiKey;
-      resolve();
-    };
-    window.gm_authFailure = () => {
-      cleanup();
-      googleMapsSdkPromise = null;
-      reject(new Error("Google API key is not authorized for this app URL."));
-    };
-
-    const script = document.createElement("script");
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(apiKey)}&callback=${callbackName}`;
-    script.async = true;
-    script.defer = true;
-    script.onerror = () => {
-      cleanup();
-      googleMapsSdkPromise = null;
-      reject(new Error("Failed to load Google Maps SDK."));
-    };
-    document.head.appendChild(script);
-  });
-
-  return googleMapsSdkPromise;
-}
-
-function requestDistanceMatrix(service, origin, destinationQueries) {
-  return new Promise((resolve) => {
-    const timeout = setTimeout(() => {
-      resolve({ status: "TIMEOUT", rows: [] });
-    }, 20000);
-    service.getDistanceMatrix({
-      origins: [origin],
-      destinations: destinationQueries,
-      travelMode: google.maps.TravelMode.DRIVING,
-      drivingOptions: {
-        departureTime: new Date(),
-        trafficModel: google.maps.TrafficModel.BEST_GUESS
-      },
-      unitSystem: google.maps.UnitSystem.METRIC
-    }, (response, status) => {
-      clearTimeout(timeout);
-      if (!response) {
-        resolve({ status: status || "ERROR", rows: [] });
-        return;
-      }
-      resolve({
-        status: status || response.status || "ERROR",
-        rows: response.rows || []
-      });
-    });
-  });
-}
-
-function normalizeDistanceMatrixElement(element) {
-  if (!element || element.status !== "OK") {
-    return { status: "not_found", durationMinutes: null, distanceKm: null };
-  }
-  const durationSec = Number(element.duration_in_traffic?.value ?? element.duration?.value ?? NaN);
-  const distanceMeters = Number(element.distance?.value ?? NaN);
-  return {
-    status: Number.isFinite(durationSec) ? "ok" : "error",
-    durationMinutes: Number.isFinite(durationSec) ? Math.max(1, Math.round(durationSec / 60)) : null,
-    distanceKm: Number.isFinite(distanceMeters) ? Math.round((distanceMeters / 1000) * 10) / 10 : null
-  };
 }
 
 function chunkList(items, size) {
