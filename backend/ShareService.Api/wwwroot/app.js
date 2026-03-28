@@ -148,11 +148,6 @@ const el = {
   routeBuilderExportJson: document.getElementById("route-builder-export-json"),
   routeBuilderUseSession: document.getElementById("route-builder-use-session"),
   routeBuilderStatus: document.getElementById("route-builder-status"),
-  accommodationLat: document.getElementById("accommodation-lat"),
-  accommodationLng: document.getElementById("accommodation-lng"),
-  accommodationSave: document.getElementById("accommodation-save"),
-  accommodationClear: document.getElementById("accommodation-clear"),
-  accommodationStatus: document.getElementById("accommodation-status"),
   dayVerificationPanel: document.getElementById("day-verification-panel"),
   dayVerificationTabs: document.getElementById("day-verification-tabs"),
   dayVerificationBody: document.getElementById("day-verification-body"),
@@ -246,8 +241,6 @@ function bindEvents() {
 
   el.importRouteCacheInput.addEventListener("change", onImportRouteCache);
   el.routeBuilderCalc.addEventListener("click", onRouteBuilderCalculate);
-  el.accommodationSave.addEventListener("click", onAccommodationSave);
-  el.accommodationClear.addEventListener("click", onAccommodationClear);
   el.routeBuilderExportCsv.addEventListener("click", onRouteBuilderExportCsv);
   el.routeBuilderExportJson.addEventListener("click", onRouteBuilderExportJson);
   el.routeBuilderUseSession.addEventListener("click", onRouteBuilderUseInSession);
@@ -432,9 +425,7 @@ function createEmptyCity(name) {
     researcherAssignments: [],
     dayVerifications: [],
     routeCache: [],
-    manualFollowUpWarnings: [],
-    accommodationLatitude: null,
-    accommodationLongitude: null
+    manualFollowUpWarnings: []
   };
 }
 
@@ -959,13 +950,6 @@ function renderCitySetupProgress() {
       doneText: `${city.schools.length} school(s)`
     },
     {
-      label: "Accommodation",
-      targetId: "setup-accommodation",
-      done: Number.isFinite(parseOptionalNumber(city.accommodationLatitude)) && Number.isFinite(parseOptionalNumber(city.accommodationLongitude)),
-      pendingText: "Not yet set",
-      doneText: "Coordinates set"
-    },
-    {
       label: "Distance Cache",
       targetId: "panel-distance",
       done: routeCacheCount > 0,
@@ -1189,9 +1173,7 @@ function normalizeState(parsed) {
           resolutionKey: String(item.resolutionKey || "").trim(),
           createdAt: String(item.createdAt || "").trim() || new Date().toISOString()
         }))
-        .filter((item) => item.title && item.message && item.location && item.resolutionKey),
-      accommodationLatitude: parseOptionalNumber(citySafe.accommodationLatitude),
-      accommodationLongitude: parseOptionalNumber(citySafe.accommodationLongitude)
+        .filter((item) => item.title && item.message && item.location && item.resolutionKey)
     };
   }
 
@@ -1240,7 +1222,6 @@ function renderAll() {
   renderFollowUpPanel("school-edit", el.schoolEditWarningPanel, uiState.schoolEditLocalWarnings);
   renderRouteCacheStatus();
   renderRouteBuilderStatus();
-  renderAccommodationStatus();
   renderSchools();
   renderDistrictProgress();
   renderResearcherAvailabilityOptions();
@@ -3435,8 +3416,6 @@ function getPlannerRouteInsights(draft) {
   const availableSet = new Set(draft.availableResearcherIds || []);
   const researcherMap = getResearcherMap();
 
-  const accommodation = getAccommodationAsPseudoSchool();
-
   draft.assignments.forEach((assignment) => {
     if (!availableSet.has(assignment.researcherId)) {
       return;
@@ -3445,21 +3424,6 @@ function getPlannerRouteInsights(draft) {
     const rowHints = {};
     let totalMinutes = 0;
     let hasKnownSegment = false;
-
-    if (accommodation && orderedRows.length > 0) {
-      const firstRow = orderedRows[0];
-      const accommSegment = getRouteSegmentForSchools(ACCOMMODATION_PSEUDO_ID, firstRow.schoolId);
-      if (accommSegment.status === "ok") {
-        accommSegment.message = accommSegment.message.replace("Drive:", "From accommodation:");
-      } else {
-        accommSegment.message = accommSegment.message.replace("Drive:", "From accommodation:");
-      }
-      rowHints["__accommodation_to_first__"] = accommSegment;
-      if (accommSegment.status === "ok" && Number.isFinite(accommSegment.durationMinutes)) {
-        totalMinutes += Number(accommSegment.durationMinutes);
-        hasKnownSegment = true;
-      }
-    }
 
     for (let i = 1; i < orderedRows.length; i += 1) {
       const fromRow = orderedRows[i - 1];
@@ -3639,7 +3603,6 @@ function renderPlannerRows() {
       const lockedDisabled = isLocked ? "disabled" : "";
       const primarySarmalChecked = assignment.primarySarmal ? "checked" : "";
       const secondarySarmalChecked = assignment.secondarySarmal ? "checked" : "";
-      const accommodationRouteHint = renderRouteHint(assignment.id, "__accommodation_to_first__");
       const primaryRouteHint = renderRouteHint(assignment.id, "primary");
       const secondaryRouteHint = renderRouteHint(assignment.id, "secondary");
 
@@ -3736,7 +3699,6 @@ function renderPlannerRows() {
               <option value="">Select primary school</option>
               ${primaryOptions}
             </select>
-            ${accommodationRouteHint}
             ${primaryRouteHint}
           </td>
           <td class="planner-classrooms-cell"><input type="number" min="1" step="1" data-field="primaryClassrooms" value="${Number(assignment.primaryClassrooms || 0)}" ${lockedDisabled}></td>
@@ -5301,91 +5263,12 @@ function hasValidCoordinates(school) {
   return Number.isFinite(lat) && Number.isFinite(lng);
 }
 
-const ACCOMMODATION_PSEUDO_ID = "__accommodation__";
-
-function getAccommodationAsPseudoSchool() {
-  const city = getCurrentCity();
-  if (!city) return null;
-  const lat = parseOptionalNumber(city.accommodationLatitude);
-  const lng = parseOptionalNumber(city.accommodationLongitude);
-  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
-  return {
-    id: ACCOMMODATION_PSEUDO_ID,
-    name: "Accommodation",
-    district: "",
-    latitude: lat,
-    longitude: lng,
-    addressLine: "",
-    city: "",
-    country: ""
-  };
-}
-
-function onAccommodationSave() {
-  const city = getCurrentCity();
-  if (!city) {
-    alert("Select a city first.");
-    return;
-  }
-  const latStr = String(el.accommodationLat.value || "").trim();
-  const lngStr = String(el.accommodationLng.value || "").trim();
-  const lat = parseOptionalNumber(latStr);
-  const lng = parseOptionalNumber(lngStr);
-  if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
-    alert("Please enter valid latitude and longitude values.");
-    return;
-  }
-  city.accommodationLatitude = lat;
-  city.accommodationLongitude = lng;
-  noteDocumentMutation();
-  renderAccommodationStatus();
-  renderCitySetupProgress();
-  const hasAccommodationRoutes = city.routeCache.some((entry) => entry.fromSchoolId === ACCOMMODATION_PSEUDO_ID);
-  if (!hasAccommodationRoutes && city.routeCache.length > 0) {
-    el.accommodationStatus.textContent += " — Re-run Calculate Distances to include accommodation routes.";
-  }
-}
-
-function onAccommodationClear() {
-  const city = getCurrentCity();
-  if (!city) return;
-  city.accommodationLatitude = null;
-  city.accommodationLongitude = null;
-  el.accommodationLat.value = "";
-  el.accommodationLng.value = "";
-  noteDocumentMutation();
-  renderAccommodationStatus();
-  renderCitySetupProgress();
-  renderPlanner();
-}
-
-function renderAccommodationStatus() {
-  const city = getCurrentCity();
-  if (!city) {
-    el.accommodationStatus.textContent = "No city selected.";
-    return;
-  }
-  const lat = parseOptionalNumber(city.accommodationLatitude);
-  const lng = parseOptionalNumber(city.accommodationLongitude);
-  if (Number.isFinite(lat) && Number.isFinite(lng)) {
-    el.accommodationLat.value = lat;
-    el.accommodationLng.value = lng;
-    el.accommodationStatus.textContent = `Accommodation set: ${lat}, ${lng}`;
-  } else {
-    el.accommodationLat.value = "";
-    el.accommodationLng.value = "";
-    el.accommodationStatus.textContent = "No accommodation set for this city.";
-  }
-}
-
 async function onRouteBuilderCalculate() {
   if (uiState.routeBuilder.running) {
     alert("Distance calculation is already running.");
     return;
   }
   const schools = getRouteBuilderSchoolsFromState();
-  console.log("[DEBUG-ROUTE] First 3 schools from state:", schools.slice(0, 3).map(s => ({ name: s.name, lat: s.latitude, lng: s.longitude })));
-  console.log("[DEBUG-ROUTE] Raw state.schools first 3:", state.schools.slice(0, 3).map(s => ({ name: s.name, lat: s.latitude, lng: s.longitude })));
   const missingCoordinateSchools = schools.filter((school) => !hasValidCoordinates(school));
   const apiKey = String(el.routeBuilderApiKey.value || "").trim();
   if (schools.length < 2) {
@@ -5459,37 +5342,10 @@ async function onRouteBuilderCalculate() {
           });
         });
         completedPairs += job.group.length;
-        renderRouteBuilderStatus(`Calculating... ${completedPairs}/${totalPairs} school pairs`, "running");
+        renderRouteBuilderStatus(`Calculating... ${completedPairs}/${totalPairs} pairs`, "running");
       }
     });
     await Promise.all(workers);
-
-    const accommodation = getAccommodationAsPseudoSchool();
-    if (accommodation) {
-      renderRouteBuilderStatus("Calculating accommodation routes...", "running");
-      const accommService = new google.maps.DistanceMatrixService();
-      const accommChunks = chunkList(schools, 25);
-      for (const chunk of accommChunks) {
-        const result = await fetchDistanceMatrixForBuilder(accommService, accommodation, chunk);
-        const fetchedAt = new Date().toISOString();
-        chunk.forEach((toSchool, idx) => {
-          const item = result[idx] || { status: "error", durationMinutes: null, distanceKm: null };
-          entries.push({
-            fromSchoolId: accommodation.id,
-            fromSchoolName: accommodation.name,
-            fromDistrict: "",
-            toSchoolId: toSchool.id,
-            toSchoolName: toSchool.name,
-            toDistrict: toSchool.district,
-            durationMinutes: item.durationMinutes,
-            distanceKm: item.distanceKm,
-            status: item.status,
-            fetchedAt,
-            provider: "google"
-          });
-        });
-      }
-    }
 
     uiState.routeBuilder.entries = entries;
     const normalized = normalizeRouteCacheEntries(entries);
@@ -5498,9 +5354,8 @@ async function onRouteBuilderCalculate() {
     renderPlanner();
     const ok = entries.filter((item) => item.status === "ok").length;
     const failed = entries.length - ok;
-    const accommNote = getAccommodationAsPseudoSchool() ? ` (incl. accommodation)` : "";
     renderRouteBuilderStatus(
-      `Done. ${entries.length} pairs calculated (${ok} ok, ${failed} unresolved)${accommNote}. Loaded ${loadedIntoSession} pairs into this session.`,
+      `Done. ${entries.length} pairs calculated (${ok} ok, ${failed} unresolved). Loaded ${loadedIntoSession} pairs into this session.`,
       "success"
     );
   } catch (error) {
@@ -5597,10 +5452,8 @@ function loadGoogleMapsSdk(apiKey) {
 }
 
 function requestDistanceMatrix(service, origin, destinationQueries) {
-  console.log("[DEBUG-ROUTE] requestDistanceMatrix called", { origin, destinationCount: destinationQueries.length });
   return new Promise((resolve) => {
     const timeout = setTimeout(() => {
-      console.warn("[DEBUG-ROUTE] Request timed out");
       resolve({ status: "TIMEOUT", rows: [] });
     }, 20000);
     service.getDistanceMatrix({
@@ -5614,7 +5467,6 @@ function requestDistanceMatrix(service, origin, destinationQueries) {
       unitSystem: google.maps.UnitSystem.METRIC
     }, (response, status) => {
       clearTimeout(timeout);
-      console.log("[DEBUG-ROUTE] API response", { status, hasResponse: !!response, rows: response?.rows?.length, elements: response?.rows?.[0]?.elements?.map(e => ({ status: e.status, duration: e.duration, distance: e.distance })) });
       if (!response) {
         resolve({ status: status || "ERROR", rows: [] });
         return;
@@ -5953,9 +5805,6 @@ function normalizeRouteCacheEntries(rawEntries) {
 
 function resolveImportedSchoolId(rawId, rawName, rawDistrict) {
   const id = String(rawId || "").trim();
-  if (id === ACCOMMODATION_PSEUDO_ID) {
-    return ACCOMMODATION_PSEUDO_ID;
-  }
   if (id && state.schools.some((school) => school.id === id)) {
     return id;
   }
@@ -6123,88 +5972,22 @@ async function onImportJson(event) {
 
 async function tryAutoLoadDocument() {
   const token = (localStorage.getItem("api_jwt_token") || "").trim();
-  if (token) {
-    const docId = await fetchFirstDocumentId(token);
-    if (docId) {
-      window.location.href = `${window.location.origin}/edit/${docId}`;
-      return;
-    }
-  }
-  showTokenPrompt();
-}
-
-async function fetchFirstDocumentId(token) {
+  if (!token) return;
   const apiBase = resolveApiBaseUrl();
   try {
     const res = await fetch(`${apiBase}/documents`, {
       headers: { "Authorization": `Bearer ${token}` }
     });
-    if (!res.ok) return null;
+    if (!res.ok) return;
     const docs = await res.json();
-    if (!Array.isArray(docs) || docs.length === 0) return null;
-    return docs[0].id || null;
-  } catch (err) {
-    console.error("Fetch documents failed:", err);
-    return null;
-  }
-}
-
-function showTokenPrompt() {
-  const overlay = document.getElementById("token-prompt-overlay");
-  const input = document.getElementById("token-prompt-input");
-  const connectBtn = document.getElementById("token-prompt-connect");
-  const skipBtn = document.getElementById("token-prompt-skip");
-  const errorEl = document.getElementById("token-prompt-error");
-  if (!overlay) return;
-
-  overlay.hidden = false;
-  input.value = "";
-  input.focus();
-
-  async function onConnect() {
-    const token = input.value.trim();
-    if (!token) {
-      errorEl.textContent = "Please enter a token.";
-      errorEl.hidden = false;
-      return;
-    }
-    errorEl.hidden = true;
-    connectBtn.disabled = true;
-    connectBtn.textContent = "Connecting...";
-
-    const docId = await fetchFirstDocumentId(token);
+    if (!Array.isArray(docs) || docs.length === 0) return;
+    const docId = docs[0].id;
     if (docId) {
-      localStorage.setItem("api_jwt_token", token);
-      if (el.apiJwtToken) el.apiJwtToken.value = token;
       window.location.href = `${window.location.origin}/edit/${docId}`;
-      return;
     }
-
-    // No existing document — save token and let user start fresh
-    localStorage.setItem("api_jwt_token", token);
-    if (el.apiJwtToken) el.apiJwtToken.value = token;
-    overlay.hidden = true;
-    cleanup();
+  } catch (err) {
+    console.error("Auto-load document failed:", err);
   }
-
-  function onSkip() {
-    overlay.hidden = true;
-    cleanup();
-  }
-
-  function onKeydown(e) {
-    if (e.key === "Enter") onConnect();
-  }
-
-  function cleanup() {
-    connectBtn.removeEventListener("click", onConnect);
-    skipBtn.removeEventListener("click", onSkip);
-    input.removeEventListener("keydown", onKeydown);
-  }
-
-  connectBtn.addEventListener("click", onConnect);
-  skipBtn.addEventListener("click", onSkip);
-  input.addEventListener("keydown", onKeydown);
 }
 
 async function loadEditDocumentIfNeeded() {

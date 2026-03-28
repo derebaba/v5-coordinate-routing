@@ -284,26 +284,6 @@
         <small>Accepted: <code>.csv</code>, <code>.xlsx</code> | required: <code>name,district,schoolType,lectureDuration,classroomCount</code> (or <code>Ders süresi</code> for lecture duration) | recommended for route building: <code>latitude,longitude</code> | full headers: <code>name,district,schoolType,lectureDuration,workingHours,lunchBreak,classroomCount,maxClassroomSize,classroomList,school_id,survey,notes,addressLine,latitude,longitude,city,country</code></small>
       </div>
 
-      <div class="setup-subsection" id="setup-accommodation">
-        <h3 class="panel-subheader">Accommodation</h3>
-        <p class="setup-copy">Enter the coordinates of your accommodation. This is used to calculate the driving distance from the accommodation to the first school each researcher visits.</p>
-        <div class="grid-form">
-          <label>
-            Latitude
-            <input id="accommodation-lat" type="text" placeholder="e.g. 39.9208" inputmode="decimal">
-          </label>
-          <label>
-            Longitude
-            <input id="accommodation-lng" type="text" placeholder="e.g. 32.8541" inputmode="decimal">
-          </label>
-          <div class="actions">
-            <button id="accommodation-save" type="button">Save Accommodation</button>
-            <button id="accommodation-clear" type="button" class="ghost">Clear</button>
-          </div>
-          <div id="accommodation-status" class="small-note">No accommodation set for this city.</div>
-        </div>
-      </div>
-
       <div id="panel-distance" class="setup-subsection">
         <h3 class="panel-subheader">Distance Cache</h3>
 
@@ -539,19 +519,6 @@
     </section>
 
   </main>
-
-  <div id="token-prompt-overlay" class="token-prompt-overlay" hidden>
-    <div class="token-prompt-card">
-      <h2>Connect to Session</h2>
-      <p>Enter your API token to load your session.</p>
-      <input id="token-prompt-input" type="password" placeholder="API token" class="token-prompt-input">
-      <div id="token-prompt-error" class="token-prompt-error" hidden></div>
-      <div class="actions">
-        <button id="token-prompt-connect" type="button">Connect</button>
-        <button id="token-prompt-skip" type="button" class="ghost">Work Offline</button>
-      </div>
-    </div>
-  </div>
 
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="app.js"></script>
