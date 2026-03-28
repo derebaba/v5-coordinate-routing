@@ -5051,7 +5051,7 @@ function importSchoolsFromRows(rows) {
   }
 
   let imported = 0;
-  let duplicates = 0;
+  let updated = 0;
   let invalid = 0;
   let skippedEmpty = 0;
 
@@ -5063,7 +5063,7 @@ function importSchoolsFromRows(rows) {
     invalidClassroomCount: 0
   };
 
-  const existingKeys = new Set(state.schools.map((school) => getSchoolDuplicateKey(school.name, school.district)));
+  const existingByKey = new Map(state.schools.map((school) => [getSchoolDuplicateKey(school.name, school.district), school]));
 
   for (let i = 1; i < rows.length; i += 1) {
     const row = rows[i];
@@ -5100,13 +5100,9 @@ function importSchoolsFromRows(rows) {
     }
 
     const duplicateKey = getSchoolDuplicateKey(name, district);
-    if (existingKeys.has(duplicateKey)) {
-      duplicates += 1;
-      continue;
-    }
+    const existing = existingByKey.get(duplicateKey);
 
-    state.schools.push({
-      id: generateId("school"),
+    const schoolData = {
       name,
       district,
       schoolCode: schoolCodeIdx >= 0 ? String(row[schoolCodeIdx] || "").trim() : "",
@@ -5124,18 +5120,24 @@ function importSchoolsFromRows(rows) {
       longitude: longitudeIdx >= 0 ? parseOptionalNumber(row[longitudeIdx]) : null,
       city: cityIdx >= 0 ? String(row[cityIdx] || "").trim() : "",
       country: countryIdx >= 0 ? String(row[countryIdx] || "").trim() || "TR" : "TR"
-    });
+    };
 
-    existingKeys.add(duplicateKey);
-    imported += 1;
+    if (existing) {
+      Object.assign(existing, schoolData);
+      updated += 1;
+    } else {
+      state.schools.push({ id: generateId("school"), ...schoolData });
+      existingByKey.set(duplicateKey, state.schools[state.schools.length - 1]);
+      imported += 1;
+    }
   }
 
-  if (imported > 0) {
+  if (imported > 0 || updated > 0) {
     noteDocumentMutation();
     renderAll();
   }
 
-  return { imported, duplicates, invalid, skippedEmpty, invalidReasons };
+  return { imported, updated, invalid, skippedEmpty, invalidReasons };
 }
 
 function parseCsvToRows(text) {
@@ -5197,7 +5199,8 @@ function buildSchoolImportSummary(result, cityName) {
   }
   const detail = reasonParts.length ? ` Invalid breakdown -> ${reasonParts.join(", ")}.` : "";
   const emptyInfo = result.skippedEmpty > 0 ? ` Ignored empty row(s): ${result.skippedEmpty}.` : "";
-  return `Imported ${result.imported} school(s) into ${cityName}. Skipped ${result.duplicates} duplicate(s), ${result.invalid} invalid row(s).${emptyInfo}${detail}`;
+  const updatedInfo = result.updated > 0 ? ` Updated ${result.updated} existing school(s).` : "";
+  return `Imported ${result.imported} new school(s) into ${cityName}.${updatedInfo} Skipped ${result.invalid} invalid row(s).${emptyInfo}${detail}`;
 }
 
 async function onSchoolsFileImport(event) {
