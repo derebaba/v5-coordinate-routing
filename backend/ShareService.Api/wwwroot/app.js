@@ -4412,7 +4412,7 @@ function getCommittedSchoolUsageMap(excludeDayId = "") {
     if (manualStatus === "completed") {
       const total = Number(school.classroomCount || 0);
       if (Number.isFinite(total) && total > 0) {
-        usage.set(school.id, total);
+        usage.set(school.id, Math.max(usage.get(school.id) || 0, total));
       }
       return;
     }
@@ -4427,7 +4427,7 @@ function getCommittedSchoolUsageMap(excludeDayId = "") {
       return;
     }
     if (latest.outcome === "completed") {
-      usage.set(school.id, total);
+      usage.set(school.id, Math.max(usage.get(school.id) || 0, total));
       return;
     }
     const remainingLabels = getVerificationRemainingLabels(latest, school);
@@ -4436,7 +4436,8 @@ function getCommittedSchoolUsageMap(excludeDayId = "") {
     const remaining = remainingFromLabels > 0
       ? Math.min(total, remainingFromLabels)
       : Math.max(0, Math.min(total, remainingExplicit));
-    usage.set(school.id, Math.max(0, total - remaining));
+    const verificationUsage = Math.max(0, total - remaining);
+    usage.set(school.id, Math.max(usage.get(school.id) || 0, verificationUsage));
   });
 
   return usage;
