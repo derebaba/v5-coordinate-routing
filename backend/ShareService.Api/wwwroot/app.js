@@ -4381,29 +4381,29 @@ function subtractCapacityUsage(capacityUsage, schoolId, classrooms) {
 }
 
 function getCommittedSchoolUsageMap(excludeDayId = "") {
+  const verifiedDayIds = new Set(state.dayVerifications.map((v) => v.dayId));
+
   const usage = new Map();
   state.researcherAssignments.forEach((assignment) => {
     if (excludeDayId && assignment.dayId === excludeDayId) {
       return;
     }
-    if (assignment.primarySchoolId) {
-      addCapacityUsage(usage, assignment.primarySchoolId, Number(assignment.primaryClassrooms || 0));
+    const dayVerified = verifiedDayIds.has(assignment.dayId);
+    function addIfNotVerified(schoolId, classrooms) {
+      if (!schoolId) return;
+      const count = Number(classrooms || 0);
+      if (!Number.isFinite(count) || count <= 0) return;
+      if (dayVerified && state.dayVerifications.some((v) => v.dayId === assignment.dayId && v.schoolId === schoolId)) {
+        return;
+      }
+      addCapacityUsage(usage, schoolId, count);
     }
+    addIfNotVerified(assignment.primarySchoolId, assignment.primaryClassrooms);
     const extraPrimaryRows = Array.isArray(assignment.extraPrimaryRows) ? assignment.extraPrimaryRows : [];
-    extraPrimaryRows.forEach((row) => {
-      if (row.schoolId) {
-        addCapacityUsage(usage, row.schoolId, Number(row.classrooms || 0));
-      }
-    });
-    if (assignment.secondarySchoolId) {
-      addCapacityUsage(usage, assignment.secondarySchoolId, Number(assignment.secondaryClassrooms || 0));
-    }
+    extraPrimaryRows.forEach((row) => addIfNotVerified(row.schoolId, row.classrooms));
+    addIfNotVerified(assignment.secondarySchoolId, assignment.secondaryClassrooms);
     const extraSecondaryRows = Array.isArray(assignment.extraSecondaryRows) ? assignment.extraSecondaryRows : [];
-    extraSecondaryRows.forEach((row) => {
-      if (row.schoolId) {
-        addCapacityUsage(usage, row.schoolId, Number(row.classrooms || 0));
-      }
-    });
+    extraSecondaryRows.forEach((row) => addIfNotVerified(row.schoolId, row.classrooms));
   });
 
   state.schools.forEach((school) => {
@@ -4412,7 +4412,7 @@ function getCommittedSchoolUsageMap(excludeDayId = "") {
     if (manualStatus === "completed") {
       const total = Number(school.classroomCount || 0);
       if (Number.isFinite(total) && total > 0) {
-        usage.set(school.id, Math.max(usage.get(school.id) || 0, total));
+        usage.set(school.id, total);
       }
       return;
     }
@@ -4427,7 +4427,7 @@ function getCommittedSchoolUsageMap(excludeDayId = "") {
       return;
     }
     if (latest.outcome === "completed") {
-      usage.set(school.id, Math.max(usage.get(school.id) || 0, total));
+      usage.set(school.id, total);
       return;
     }
     const remainingLabels = getVerificationRemainingLabels(latest, school);
@@ -4437,7 +4437,7 @@ function getCommittedSchoolUsageMap(excludeDayId = "") {
       ? Math.min(total, remainingFromLabels)
       : Math.max(0, Math.min(total, remainingExplicit));
     const verificationUsage = Math.max(0, total - remaining);
-    usage.set(school.id, Math.max(usage.get(school.id) || 0, verificationUsage));
+    addCapacityUsage(usage, school.id, verificationUsage);
   });
 
   return usage;
