@@ -1980,26 +1980,8 @@ function getScheduledClassroomsForSchool(school) {
   if (manualStatus === "not scheduled") {
     return 0;
   }
-  let assigned = 0;
-  state.researcherAssignments.forEach((assignment) => {
-    if (assignment.primarySchoolId === school.id) {
-      assigned += Number(assignment.primaryClassrooms || 0);
-    }
-    if (assignment.secondarySchoolId === school.id) {
-      assigned += Number(assignment.secondaryClassrooms || 0);
-    }
-    (Array.isArray(assignment.extraPrimaryRows) ? assignment.extraPrimaryRows : []).forEach((row) => {
-      if (row.schoolId === school.id) {
-        assigned += Number(row.classrooms || 0);
-      }
-    });
-    (Array.isArray(assignment.extraSecondaryRows) ? assignment.extraSecondaryRows : []).forEach((row) => {
-      if (row.schoolId === school.id) {
-        assigned += Number(row.classrooms || 0);
-      }
-    });
-  });
-  return Math.max(0, Math.min(total, assigned));
+  const usageMap = getCommittedSchoolUsageMap();
+  return Math.max(0, Math.min(total, usageMap.get(school.id) || 0));
 }
 
 function getCompletedClassroomsForSchool(school) {
@@ -2077,6 +2059,7 @@ function renderDistrictProgress() {
   }
 
   const rowsByKey = new Map();
+  const schoolDetailsByKey = new Map();
   state.schools.forEach((school) => {
     const district = String(school.district || "").trim() || "(No district)";
     const schoolType = getProgressSchoolTypeLabel(school.schoolType);
@@ -2090,6 +2073,7 @@ function renderDistrictProgress() {
         totalClassrooms: 0,
         trackedClassrooms: 0
       });
+      schoolDetailsByKey.set(rowKey, []);
     }
     const row = rowsByKey.get(rowKey);
     row.totalSchools += 1;
@@ -2097,18 +2081,28 @@ function renderDistrictProgress() {
     const boundedTotalClassrooms = Number.isFinite(totalClassrooms) ? Math.max(0, totalClassrooms) : 0;
     row.totalClassrooms += boundedTotalClassrooms;
 
+    let trackedForSchool = 0;
     if (isCompletedMode) {
-      const completedClassrooms = getCompletedClassroomsForSchool(school);
-      row.trackedClassrooms += completedClassrooms;
+      trackedForSchool = getCompletedClassroomsForSchool(school);
+      row.trackedClassrooms += trackedForSchool;
       if (getSchoolStatus(school.id) === "completed") {
         row.trackedSchools += 1;
       }
     } else {
-      const scheduledClassrooms = getScheduledClassroomsForSchool(school);
-      row.trackedClassrooms += scheduledClassrooms;
-      if (scheduledClassrooms > 0 || getSchoolStatus(school.id) === "completed" || getSchoolStatus(school.id) === "incomplete") {
+      trackedForSchool = getScheduledClassroomsForSchool(school);
+      row.trackedClassrooms += trackedForSchool;
+      if (trackedForSchool > 0 || getSchoolStatus(school.id) === "completed" || getSchoolStatus(school.id) === "incomplete") {
         row.trackedSchools += 1;
       }
+    }
+
+    if (trackedForSchool < boundedTotalClassrooms) {
+      schoolDetailsByKey.get(rowKey).push({
+        name: school.name,
+        tracked: trackedForSchool,
+        total: boundedTotalClassrooms,
+        missing: boundedTotalClassrooms - trackedForSchool
+      });
     }
   });
 
@@ -2142,33 +2136,60 @@ function renderDistrictProgress() {
   }, new Map());
   const districtSeen = new Set();
 
-  el.districtProgressBody.innerHTML = [
-    ...rows.map((row) => {
-      const showDistrict = !districtSeen.has(row.district);
-      if (showDistrict) {
-        districtSeen.add(row.district);
-      }
-      const districtCell = showDistrict
-        ? `<td class="district-progress-district-cell" rowspan="${districtCounts.get(row.district) || 1}">${escapeHtml(row.district)}</td>`
-        : "";
-      return `
-      <tr>
+  const htmlParts = [];
+  rows.forEach((row) => {
+    const rowKey = `${row.district}::${row.schoolType}`;
+    const details = schoolDetailsByKey.get(rowKey) || [];
+    const hasGap = row.trackedClassrooms < row.totalClassrooms;
+    const showDistrict = !districtSeen.has(row.district);
+    if (showDistrict) {
+      districtSeen.add(row.district);
+    }
+    const districtCell = showDistrict
+      ? `<td class="district-progress-district-cell" rowspan="${districtCounts.get(row.district) || 1}">${escapeHtml(row.district)}</td>`
+      : "";
+    const gapStyle = hasGap ? ' style="cursor:pointer" title="Click to see schools with missing classrooms"' : "";
+    const classroomsLabel = hasGap
+      ? `${row.trackedClassrooms}/${row.totalClassrooms} ▸`
+      : `${row.trackedClassrooms}/${row.totalClassrooms}`;
+    htmlParts.push(`
+      <tr${gapStyle} ${hasGap ? `data-toggle-detail="${escapeHtml(rowKey)}"` : ""}>
         ${districtCell}
         <td>${escapeHtml(row.schoolType)}</td>
         <td>${row.trackedSchools}/${row.totalSchools}</td>
-        <td>${row.trackedClassrooms}/${row.totalClassrooms}</td>
+        <td>${classroomsLabel}</td>
       </tr>
-    `;
-    }),
-    `
-      <tr class="district-progress-total">
-        <td><strong>All Districts</strong></td>
-        <td><strong>All Types</strong></td>
-        <td><strong>${totalRow.trackedSchools}/${totalRow.totalSchools}</strong></td>
-        <td><strong>${totalRow.trackedClassrooms}/${totalRow.totalClassrooms}</strong></td>
-      </tr>
-    `
-  ].join("");
+    `);
+    if (hasGap && details.length) {
+      details.sort((a, b) => b.missing - a.missing);
+      htmlParts.push(`
+        <tr class="district-progress-detail" data-detail-key="${escapeHtml(rowKey)}" hidden>
+          <td colspan="4" style="padding:4px 8px;background:#f8f8f0;">
+            <small>${details.map((d) => `<strong>${escapeHtml(d.name)}</strong>: ${d.tracked}/${d.total} (${d.missing} missing)`).join("<br>")}</small>
+          </td>
+        </tr>
+      `);
+    }
+  });
+  htmlParts.push(`
+    <tr class="district-progress-total">
+      <td><strong>All Districts</strong></td>
+      <td><strong>All Types</strong></td>
+      <td><strong>${totalRow.trackedSchools}/${totalRow.totalSchools}</strong></td>
+      <td><strong>${totalRow.trackedClassrooms}/${totalRow.totalClassrooms}</strong></td>
+    </tr>
+  `);
+  el.districtProgressBody.innerHTML = htmlParts.join("");
+
+  el.districtProgressBody.querySelectorAll("[data-toggle-detail]").forEach((tr) => {
+    tr.addEventListener("click", () => {
+      const key = tr.getAttribute("data-toggle-detail");
+      const detailRow = el.districtProgressBody.querySelector(`[data-detail-key="${key}"]`);
+      if (detailRow) {
+        detailRow.hidden = !detailRow.hidden;
+      }
+    });
+  });
 }
 
 function parseDelimitedLabels(value) {
