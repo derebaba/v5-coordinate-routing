@@ -4280,14 +4280,14 @@ function validateAssignment(assignment, researcher, schoolMap, errors, warnings,
   let session1HasSarmal = false;
 
   if (!assignment.primarySchoolId) {
-    errors.push(`${label}: primary school is required.`);
-    return;
+    issues.push(`${label}: primary school is required.`);
+    if (!assignment.overrideEnabled) return;
   }
 
-  const primarySchool = schoolMap.get(assignment.primarySchoolId);
-  if (!primarySchool) {
-    errors.push(`${label}: primary school was deleted.`);
-    return;
+  const primarySchool = assignment.primarySchoolId ? schoolMap.get(assignment.primarySchoolId) : null;
+  if (assignment.primarySchoolId && !primarySchool) {
+    issues.push(`${label}: primary school was deleted.`);
+    if (!assignment.overrideEnabled) return;
   }
 
   if (!Number.isInteger(assignment.primaryClassrooms) || assignment.primaryClassrooms < 1) {
@@ -4300,7 +4300,7 @@ function validateAssignment(assignment, researcher, schoolMap, errors, warnings,
     }
   }
 
-  if (!isPrimarySchoolType(primarySchool.schoolType)) {
+  if (primarySchool && !isPrimarySchoolType(primarySchool.schoolType)) {
     issues.push(`${label}: primary school must be Sabahci or Tam gun.`);
   }
 
