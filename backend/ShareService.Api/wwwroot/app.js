@@ -4273,6 +4273,7 @@ function validatePlannerDraft(draft, routeInsights = null) {
 
 function validateAssignment(assignment, researcher, schoolMap, errors, warnings, capacityUsage) {
   const label = researcher.fullName;
+  const issues = assignment.overrideEnabled ? warnings : errors;
   assignment.extraPrimaryRows = Array.isArray(assignment.extraPrimaryRows) ? assignment.extraPrimaryRows : [];
   assignment.extraSecondaryRows = Array.isArray(assignment.extraSecondaryRows) ? assignment.extraSecondaryRows : [];
   let session1TotalClassrooms = 0;
@@ -4290,7 +4291,7 @@ function validateAssignment(assignment, researcher, schoolMap, errors, warnings,
   }
 
   if (!Number.isInteger(assignment.primaryClassrooms) || assignment.primaryClassrooms < 1) {
-    errors.push(`${label}: primary classrooms must be 1 or more.`);
+    issues.push(`${label}: primary classrooms must be 1 or more.`);
   }
   if (Number.isFinite(Number(assignment.primaryClassrooms)) && Number(assignment.primaryClassrooms) > 0) {
     session1TotalClassrooms += Number(assignment.primaryClassrooms);
@@ -4299,10 +4300,8 @@ function validateAssignment(assignment, researcher, schoolMap, errors, warnings,
     }
   }
 
-  if (!assignment.overrideEnabled) {
-    if (!isPrimarySchoolType(primarySchool.schoolType)) {
-      errors.push(`${label}: primary school must be Sabahci or Tam gun when override is off.`);
-    }
+  if (!isPrimarySchoolType(primarySchool.schoolType)) {
+    issues.push(`${label}: primary school must be Sabahci or Tam gun.`);
   }
 
   addCapacityUsage(capacityUsage, assignment.primarySchoolId, assignment.primaryClassrooms);
@@ -4313,13 +4312,13 @@ function validateAssignment(assignment, researcher, schoolMap, errors, warnings,
     }
     const school = schoolMap.get(row.schoolId);
     if (!school) {
-      errors.push(`${label}: an extra session-1 school was deleted.`);
+      issues.push(`${label}: an extra session-1 school was deleted.`);
     }
     if (!Number.isInteger(row.classrooms) || row.classrooms < 1) {
-      errors.push(`${label}: extra session-1 classrooms must be 1 or more.`);
+      issues.push(`${label}: extra session-1 classrooms must be 1 or more.`);
     }
-    if (!assignment.overrideEnabled && (!school || !isPrimarySchoolType(school.schoolType))) {
-      errors.push(`${label}: extra session-1 schools must be Sabahci or Tam gun when override is off.`);
+    if (!school || !isPrimarySchoolType(school.schoolType)) {
+      issues.push(`${label}: extra session-1 schools must be Sabahci or Tam gun.`);
     }
     if (Number.isFinite(Number(row.classrooms)) && Number(row.classrooms) > 0) {
       session1TotalClassrooms += Number(row.classrooms);
@@ -4330,31 +4329,27 @@ function validateAssignment(assignment, researcher, schoolMap, errors, warnings,
     addCapacityUsage(capacityUsage, row.schoolId, row.classrooms);
   });
 
-  if (!assignment.overrideEnabled && session1TotalClassrooms > 3 && !session1HasSarmal) {
-    errors.push(`${label}: session-1 classrooms exceed 3, so select Sarmal or enable override.`);
+  const hasMultipleSession1Schools = assignment.extraPrimaryRows.some((row) => row.schoolId);
+  if (!hasMultipleSession1Schools && session1TotalClassrooms > 3 && !session1HasSarmal) {
+    issues.push(`${label}: session-1 classrooms exceed 3, so select Sarmal or enable override.`);
   }
 
   if (assignment.secondarySchoolId) {
     const secondarySchool = schoolMap.get(assignment.secondarySchoolId);
     if (!secondarySchool) {
-      errors.push(`${label}: secondary school was deleted.`);
+      issues.push(`${label}: secondary school was deleted.`);
     }
 
     if (!Number.isInteger(assignment.secondaryClassrooms) || assignment.secondaryClassrooms < 1) {
-      errors.push(`${label}: secondary classrooms must be 1 or more when secondary school is selected.`);
+      issues.push(`${label}: secondary classrooms must be 1 or more when secondary school is selected.`);
     }
 
-    if (!assignment.overrideEnabled) {
-      if (!secondarySchool || !isSecondarySchoolType(secondarySchool.schoolType)) {
-        errors.push(`${label}: secondary school must be Oglenci when override is off.`);
-      }
+    if (!secondarySchool || !isSecondarySchoolType(secondarySchool.schoolType)) {
+      issues.push(`${label}: secondary school must be Oglenci.`);
     }
 
     if (assignment.primarySchoolId && assignment.primarySchoolId === assignment.secondarySchoolId) {
-      if (!assignment.overrideEnabled) {
-        errors.push(`${label}: primary and secondary school cannot be the same unless override is enabled.`);
-      }
-      warnings.push(`${label}: primary and secondary are the same school (override).`);
+      issues.push(`${label}: primary and secondary school are the same.`);
     }
 
     if (assignment.extraPrimaryRows.some((row) => row.schoolId && row.schoolId === assignment.secondarySchoolId)) {
@@ -4370,15 +4365,13 @@ function validateAssignment(assignment, researcher, schoolMap, errors, warnings,
     }
     const school = schoolMap.get(row.schoolId);
     if (!school) {
-      errors.push(`${label}: an extra session-2 school was deleted.`);
+      issues.push(`${label}: an extra session-2 school was deleted.`);
     }
     if (!Number.isInteger(row.classrooms) || row.classrooms < 1) {
-      errors.push(`${label}: extra session-2 classrooms must be 1 or more.`);
+      issues.push(`${label}: extra session-2 classrooms must be 1 or more.`);
     }
-    if (!assignment.overrideEnabled) {
-      if (!school || !isSecondarySchoolType(school.schoolType)) {
-        errors.push(`${label}: extra session-2 schools must be Oglenci when override is off.`);
-      }
+    if (!school || !isSecondarySchoolType(school.schoolType)) {
+      issues.push(`${label}: extra session-2 schools must be Oglenci.`);
     }
     addCapacityUsage(capacityUsage, row.schoolId, row.classrooms);
   });
