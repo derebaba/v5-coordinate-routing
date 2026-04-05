@@ -155,6 +155,7 @@ const el = {
   dayVerificationEdit: document.getElementById("day-verification-edit"),
 
   exportJson: document.getElementById("export-json"),
+  exportScheduleXlsx: document.getElementById("export-schedule-xlsx"),
   uploadToApi: document.getElementById("upload-to-api"),
   syncStatusBadge: document.getElementById("sync-status-badge"),
   syncStatusMessage: document.getElementById("sync-status-message"),
@@ -245,6 +246,9 @@ function bindEvents() {
   el.dayVerificationTabs.addEventListener("click", onDayVerificationTabClick);
   el.dayVerificationBody.addEventListener("change", onDayVerificationChange);
   el.exportJson.addEventListener("click", onExportJson);
+  if (el.exportScheduleXlsx) {
+    el.exportScheduleXlsx.addEventListener("click", onExportScheduleXlsx);
+  }
   el.uploadToApi.addEventListener("click", onUploadToApi);
   if (el.apiJwtToken) {
     el.apiJwtToken.value = localStorage.getItem("api_jwt_token") || "";
@@ -5756,6 +5760,151 @@ function onExportJson() {
   anchor.download = `fieldwork_scheduler_v5_${new Date().toISOString().slice(0, 10)}.json`;
   anchor.click();
   URL.revokeObjectURL(url);
+}
+
+function onExportScheduleXlsx() {
+  if (typeof XLSX === "undefined") {
+    alert("XLSX library not loaded. Please refresh the page.");
+    return;
+  }
+
+  const city = getCurrentCity();
+  if (!city) {
+    alert("Select a city first.");
+    return;
+  }
+
+  const schools = state.schools;
+  const dayMap = new Map(state.dayPlans.map((d) => [d.id, d.date || ""]));
+  const researcherMap = new Map(state.researchers.map((r) => [r.id, r.fullName || ""]));
+  const schoolMap = new Map(schools.map((s) => [s.id, s]));
+
+  const researchersBySchoolDay = new Map();
+  state.researcherAssignments.forEach((a) => {
+    const rname = researcherMap.get(a.researcherId) || "";
+    const allSchoolIds = new Set();
+    if (a.primarySchoolId) allSchoolIds.add(a.primarySchoolId);
+    if (a.secondarySchoolId) allSchoolIds.add(a.secondarySchoolId);
+    (a.extraPrimaryRows || []).forEach((r) => { if (r.schoolId) allSchoolIds.add(r.schoolId); });
+    (a.extraSecondaryRows || []).forEach((r) => { if (r.schoolId) allSchoolIds.add(r.schoolId); });
+    allSchoolIds.forEach((sid) => {
+      const key = `${sid}::${a.dayId}`;
+      if (!researchersBySchoolDay.has(key)) researchersBySchoolDay.set(key, []);
+      const list = researchersBySchoolDay.get(key);
+      if (rname && !list.includes(rname)) list.push(rname);
+    });
+  });
+
+  const verifBySchool = new Map();
+  state.dayVerifications.forEach((v) => {
+    if (!verifBySchool.has(v.schoolId)) verifBySchool.set(v.schoolId, []);
+    verifBySchool.get(v.schoolId).push(v);
+  });
+  verifBySchool.forEach((verifs) => {
+    verifs.sort((a, b) => (dayMap.get(a.dayId) || "").localeCompare(dayMap.get(b.dayId) || ""));
+  });
+
+  const visitsBySchool = new Map();
+  verifBySchool.forEach((verifs, sid) => {
+    const school = schoolMap.get(sid);
+    if (!school) return;
+    const allLabels = getSchoolClassroomLabels(school);
+    const remainingSet = new Set(allLabels);
+    const visits = [];
+
+    verifs.forEach((v) => {
+      const date = dayMap.get(v.dayId) || "";
+      const rnames = researchersBySchoolDay.get(`${sid}::${v.dayId}`) || [];
+
+      if (v.outcome === "completed") {
+        const completed = [...remainingSet].sort((a, b) => allLabels.indexOf(a) - allLabels.indexOf(b));
+        visits.push({ date, researcher: rnames.join(", "), classrooms: completed.length, labels: completed.join(", "), outcome: "Completed" });
+        remainingSet.clear();
+      } else if (v.outcome === "incomplete") {
+        const stillRemLabels = (v.remainingClassroomLabels || []).filter(Boolean);
+        let stillRemaining;
+        if (stillRemLabels.length) {
+          stillRemaining = new Set(stillRemLabels);
+        } else {
+          const remCount = Number(v.remainingClassrooms || 0);
+          const remList = [...remainingSet].sort((a, b) => allLabels.indexOf(a) - allLabels.indexOf(b));
+          stillRemaining = new Set(remCount > 0 ? remList.slice(-remCount) : []);
+        }
+        const completed = [...remainingSet].filter((l) => !stillRemaining.has(l)).sort((a, b) => allLabels.indexOf(a) - allLabels.indexOf(b));
+        if (completed.length > 0) {
+          visits.push({ date, researcher: rnames.join(", "), classrooms: completed.length, labels: completed.join(", "), outcome: "Incomplete" });
+        }
+        remainingSet.clear();
+        stillRemaining.forEach((l) => remainingSet.add(l));
+      }
+    });
+    visitsBySchool.set(sid, visits);
+  });
+
+  // Add unverified assignments
+  state.researcherAssignments.forEach((a) => {
+    const date = dayMap.get(a.dayId) || "";
+    const allSchoolIds = new Set();
+    if (a.primarySchoolId) allSchoolIds.add(a.primarySchoolId);
+    if (a.secondarySchoolId) allSchoolIds.add(a.secondarySchoolId);
+    (a.extraPrimaryRows || []).forEach((r) => { if (r.schoolId) allSchoolIds.add(r.schoolId); });
+    (a.extraSecondaryRows || []).forEach((r) => { if (r.schoolId) allSchoolIds.add(r.schoolId); });
+    allSchoolIds.forEach((sid) => {
+      if (!visitsBySchool.has(sid)) visitsBySchool.set(sid, []);
+      const visits = visitsBySchool.get(sid);
+      if (visits.some((v) => v.date === date)) return;
+      const rnames = researchersBySchoolDay.get(`${sid}::${a.dayId}`) || [];
+      visits.push({ date, researcher: rnames.join(", "), classrooms: "", labels: "", outcome: "Not verified" });
+    });
+  });
+
+  visitsBySchool.forEach((visits) => visits.sort((a, b) => a.date.localeCompare(b.date)));
+
+  let maxVisits = 0;
+  visitsBySchool.forEach((visits) => { maxVisits = Math.max(maxVisits, visits.length); });
+
+  const baseHeaders = ["School Name", "District", "School Code", "Survey", "School Type",
+    "Lecture Duration", "Working Hours", "Lunch Break", "Classroom Count",
+    "Max Class Size", "Classroom List", "Notes", "Address", "Latitude", "Longitude"];
+  const headers = [...baseHeaders];
+  for (let i = 1; i <= maxVisits; i += 1) {
+    headers.push(`Visit ${i} Date`, `Visit ${i} Researcher(s)`, `Visit ${i} Classrooms`, `Visit ${i} Classroom Labels`, `Visit ${i} Outcome`);
+  }
+
+  const rows = [headers];
+  const sortedSchools = [...schools].sort((a, b) => {
+    const dc = (a.district || "").localeCompare(b.district || "", undefined, { sensitivity: "base" });
+    return dc !== 0 ? dc : (a.name || "").localeCompare(b.name || "", undefined, { sensitivity: "base" });
+  });
+
+  sortedSchools.forEach((school) => {
+    const row = [
+      school.name || "", school.district || "", school.schoolCode || "", school.survey || "",
+      school.schoolType || "", school.lectureDuration || "", school.workingHours || "",
+      school.lunchBreak || "", school.classroomCount || 0, school.maxClassroomSize || "",
+      school.classroomList || "", school.notes || "", school.addressLine || "",
+      school.latitude || "", school.longitude || ""
+    ];
+    const visits = visitsBySchool.get(school.id) || [];
+    visits.forEach((v) => {
+      row.push(v.date, v.researcher, v.classrooms, v.labels, v.outcome);
+    });
+    rows.push(row);
+  });
+
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+
+  const colWidths = headers.map((h, i) => {
+    let max = h.length;
+    rows.forEach((r) => { if (r[i] != null) max = Math.max(max, String(r[i]).length); });
+    return { wch: Math.min(35, Math.max(10, max + 2)) };
+  });
+  ws["!cols"] = colWidths;
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Schedule");
+  const cityName = (city.name || "schedule").replace(/[^a-zA-Z0-9_-]/g, "_");
+  XLSX.writeFile(wb, `${cityName}_schedule_${new Date().toISOString().slice(0, 10)}.xlsx`);
 }
 
 async function onUploadToApi() {
