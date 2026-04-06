@@ -4698,7 +4698,12 @@ function onPlannerPrint() {
       const assignment = draft.assignments.find((item) => item.researcherId === researcherId);
       return { researcher, assignment };
     })
-    .sort((a, b) => (a.researcher?.fullName || "").localeCompare(b.researcher?.fullName || ""));
+    .sort((a, b) => {
+      const schoolA = a.assignment?.primarySchoolId ? (schoolMap.get(a.assignment.primarySchoolId)?.name || "") : "";
+      const schoolB = b.assignment?.primarySchoolId ? (schoolMap.get(b.assignment.primarySchoolId)?.name || "") : "";
+      if (schoolA !== schoolB) return schoolA.localeCompare(schoolB);
+      return (a.researcher?.fullName || "").localeCompare(b.researcher?.fullName || "");
+    });
 
   const tableRows = researcherBlocks
     .map(({ researcher, assignment }, blockIndex) => {
