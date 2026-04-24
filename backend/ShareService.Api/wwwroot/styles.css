@@ -716,13 +716,13 @@ tr:last-child td {
 #day-verification-tabs {
   flex-direction: column;
   flex-wrap: nowrap;
-  align-items: center;
+  align-items: flex-start;
 }
 
 .sheet-tab-week {
   display: flex;
   flex-wrap: wrap;
-  justify-content: center;
+  justify-content: flex-start;
   gap: 6px;
 }
 
