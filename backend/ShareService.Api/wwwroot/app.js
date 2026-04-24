@@ -3009,7 +3009,7 @@ function renderPlanner() {
   el.plannerSummary.innerHTML = `
     <div class="planner-summary-metrics">
       <strong>Capacity Summary (Live)</strong> |
-      Planned Today: <strong>${summaryMetrics.plannedToday}</strong> |
+      Planned Today: <strong>${summaryMetrics.plannedToday}</strong> (S1: <strong>${summaryMetrics.plannedTodaySession1}</strong> / S2: <strong>${summaryMetrics.plannedTodaySession2}</strong>) |
       Fully Scheduled (selected): <strong>${summaryMetrics.fullyScheduledSelected}</strong> |
       Required tablets: <strong>${summaryMetrics.requiredTablets}/480</strong>
     </div>
@@ -3346,6 +3346,8 @@ function getPlannerSummaryMetrics(draft) {
   if (!draft) {
     return {
       plannedToday: 0,
+      plannedTodaySession1: 0,
+      plannedTodaySession2: 0,
       fullyScheduledSelected: 0,
       requiredTablets: 0,
       schoolRows: []
@@ -3354,7 +3356,8 @@ function getPlannerSummaryMetrics(draft) {
 
   const availableSet = new Set(draft.availableResearcherIds || []);
   const selectedIds = new Set();
-  let plannedToday = 0;
+  let plannedTodaySession1 = 0;
+  let plannedTodaySession2 = 0;
 
   draft.assignments.forEach((assignment) => {
     if (!availableSet.has(assignment.researcherId)) {
@@ -3365,25 +3368,27 @@ function getPlannerSummaryMetrics(draft) {
 
     if (assignment.primarySchoolId) {
       selectedIds.add(assignment.primarySchoolId);
-      plannedToday += Number(assignment.primaryClassrooms || 0);
+      plannedTodaySession1 += Number(assignment.primaryClassrooms || 0);
     }
     assignment.extraPrimaryRows.forEach((row) => {
       if (row.schoolId) {
         selectedIds.add(row.schoolId);
-        plannedToday += Number(row.classrooms || 0);
+        plannedTodaySession1 += Number(row.classrooms || 0);
       }
     });
     if (assignment.secondarySchoolId) {
       selectedIds.add(assignment.secondarySchoolId);
-      plannedToday += Number(assignment.secondaryClassrooms || 0);
+      plannedTodaySession2 += Number(assignment.secondaryClassrooms || 0);
     }
     assignment.extraSecondaryRows.forEach((row) => {
       if (row.schoolId) {
         selectedIds.add(row.schoolId);
-        plannedToday += Number(row.classrooms || 0);
+        plannedTodaySession2 += Number(row.classrooms || 0);
       }
     });
   });
+
+  const plannedToday = plannedTodaySession1 + plannedTodaySession2;
 
   const liveUsage = getLiveUsageMapForCurrentDay();
   const schoolRows = [...selectedIds]
@@ -3453,6 +3458,8 @@ function getPlannerSummaryMetrics(draft) {
 
   return {
     plannedToday,
+    plannedTodaySession1,
+    plannedTodaySession2,
     fullyScheduledSelected,
     requiredTablets,
     schoolRows
