@@ -290,15 +290,20 @@
         <div class="drive-settings">
           <h3>Option 1: Calculate Route Cache</h3>
           <div class="grid-form">
+            <label class="full-width">
+              Google Maps API Key
+              <input id="route-builder-api-key" type="password" placeholder="Paste API key for this calculation only">
+            </label>
+
             <div class="actions full-width">
-              <button id="route-builder-calc" type="button">Calculate Distances (OSRM)</button>
+              <button id="route-builder-calc" type="button">Calculate Distances</button>
               <button id="route-builder-export-csv" type="button" class="ghost" disabled>Export Cache CSV</button>
               <button id="route-builder-export-json" type="button" class="ghost" disabled>Export Cache JSON</button>
               <button id="route-builder-use-session" type="button" class="ghost" disabled>Use In This Session</button>
             </div>
 
             <div id="route-builder-status" class="small-note">
-              Uses schools already loaded for the selected city. Computes driving distances via OSRM (free, OpenStreetMap-based). Requires <code>latitude</code> and <code>longitude</code> for each school.
+              Uses schools already loaded for the selected city. This builder computes all directed school pairs (A -> B and B -> A) and requires <code>latitude</code> and <code>longitude</code> for each school.
             </div>
           </div>
         </div>
