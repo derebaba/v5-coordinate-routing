@@ -3916,11 +3916,25 @@ function buildSchoolOptions(mode, selectedDistrict, currentSchoolId, assignmentI
   const isCurrentInFilteredList = Boolean(currentSchoolId) && list.some((item) => item.id === currentSchoolId);
   const needsExtraOption = Boolean(currentSchoolId) && !isCurrentInFilteredList;
 
-  const options = [...list].sort((a, b) => a.name.localeCompare(b.name)).map((school) => {
-    const selected = school.id === currentSchoolId ? "selected" : "";
-    const remaining = getSchoolRemainingClassrooms(school, usageMap);
-    return `<option value="${school.id}" ${selected}>${escapeHtml(school.name)} (${escapeHtml(school.schoolType)}) - ${remaining} left</option>`;
-  });
+  const primaryTypeRank = (school) => {
+    const t = normalizeLookup(school.schoolType);
+    if (t === "sabahci") return 0;
+    if (t === "tam gun") return 1;
+    return 2;
+  };
+  const options = [...list]
+    .sort((a, b) => {
+      if (isPrimaryMode) {
+        const rankCmp = primaryTypeRank(a) - primaryTypeRank(b);
+        if (rankCmp !== 0) return rankCmp;
+      }
+      return a.name.localeCompare(b.name);
+    })
+    .map((school) => {
+      const selected = school.id === currentSchoolId ? "selected" : "";
+      const remaining = getSchoolRemainingClassrooms(school, usageMap);
+      return `<option value="${school.id}" ${selected}>${escapeHtml(school.name)} (${escapeHtml(school.schoolType)}) - ${remaining} left</option>`;
+    });
 
   if (needsExtraOption) {
     if (selectedSchool) {
