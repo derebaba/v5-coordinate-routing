@@ -2748,18 +2748,10 @@ function resetDayPlanForm(){
   });
 }
 
-function renderPlannerDayTabs() {
-  const sorted = getSortedDayPlans();
-  if (!sorted.length) {
-    el.plannerDayTabs.innerHTML = "";
-    return;
-  }
-
-  // Group days by ISO week (Monday as start of week)
+function groupDayPlansByWeek(dayPlans) {
   const getWeekKey = (dateStr) => {
     const d = new Date(dateStr);
     if (Number.isNaN(d.getTime())) return "invalid";
-    // Copy date and find Monday of that week
     const day = d.getDay(); // 0=Sun, 1=Mon, ... 6=Sat
     const diff = day === 0 ? -6 : 1 - day; // shift to Monday
     const monday = new Date(d);
@@ -2767,15 +2759,25 @@ function renderPlannerDayTabs() {
     monday.setHours(0, 0, 0, 0);
     return monday.toISOString().slice(0, 10);
   };
-
   const weekGroups = new Map();
-  sorted.forEach((dayPlan) => {
+  dayPlans.forEach((dayPlan) => {
     const key = getWeekKey(dayPlan.date);
     if (!weekGroups.has(key)) {
       weekGroups.set(key, []);
     }
     weekGroups.get(key).push(dayPlan);
   });
+  return weekGroups;
+}
+
+function renderPlannerDayTabs() {
+  const sorted = getSortedDayPlans();
+  if (!sorted.length) {
+    el.plannerDayTabs.innerHTML = "";
+    return;
+  }
+
+  const weekGroups = groupDayPlansByWeek(sorted);
 
   el.plannerDayTabs.innerHTML = [...weekGroups.values()]
     .map((week) => {
@@ -2823,10 +2825,16 @@ function renderDayVerificationTabs() {
     return;
   }
   const selectedVerificationDayId = ensureSelectedVerificationDay(uiState.selectedDayId);
-  el.dayVerificationTabs.innerHTML = sorted
-    .map((dayPlan) => {
-      const activeClass = dayPlan.id === selectedVerificationDayId ? "sheet-tab active" : "sheet-tab";
-      return `<button type="button" class="${activeClass}" data-verification-day-id="${dayPlan.id}">${escapeHtml(formatDate(dayPlan.date))}</button>`;
+  const weekGroups = groupDayPlansByWeek(sorted);
+  el.dayVerificationTabs.innerHTML = [...weekGroups.values()]
+    .map((week) => {
+      const buttons = week
+        .map((dayPlan) => {
+          const activeClass = dayPlan.id === selectedVerificationDayId ? "sheet-tab active" : "sheet-tab";
+          return `<button type="button" class="${activeClass}" data-verification-day-id="${dayPlan.id}">${escapeHtml(formatDate(dayPlan.date))}</button>`;
+        })
+        .join("");
+      return `<div class="sheet-tab-week">${buttons}</div>`;
     })
     .join("");
 }

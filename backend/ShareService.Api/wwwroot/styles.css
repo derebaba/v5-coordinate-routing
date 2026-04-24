@@ -712,7 +712,8 @@ tr:last-child td {
   margin-bottom: 10px;
 }
 
-.sheet-tabs:has(.sheet-tab-week) {
+#planner-day-tabs,
+#day-verification-tabs {
   flex-direction: column;
   flex-wrap: nowrap;
   align-items: center;
