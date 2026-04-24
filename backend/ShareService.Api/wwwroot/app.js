@@ -2134,6 +2134,29 @@ function renderDistrictProgress() {
     trackedClassrooms: 0
   });
 
+  const totalsByType = new Map();
+  rows.forEach((row) => {
+    if (!totalsByType.has(row.schoolType)) {
+      totalsByType.set(row.schoolType, {
+        schoolType: row.schoolType,
+        totalSchools: 0,
+        trackedSchools: 0,
+        totalClassrooms: 0,
+        trackedClassrooms: 0
+      });
+    }
+    const agg = totalsByType.get(row.schoolType);
+    agg.totalSchools += row.totalSchools;
+    agg.trackedSchools += row.trackedSchools;
+    agg.totalClassrooms += row.totalClassrooms;
+    agg.trackedClassrooms += row.trackedClassrooms;
+  });
+  const sortedTypeTotals = [...totalsByType.values()].sort((a, b) => {
+    const orderCmp = getProgressSchoolTypeSortKey(a.schoolType) - getProgressSchoolTypeSortKey(b.schoolType);
+    if (orderCmp !== 0) return orderCmp;
+    return a.schoolType.localeCompare(b.schoolType, undefined, { sensitivity: "base" });
+  });
+
   const districtCounts = rows.reduce((map, row) => {
     map.set(row.district, (map.get(row.district) || 0) + 1);
     return map;
@@ -2174,6 +2197,16 @@ function renderDistrictProgress() {
         </tr>
       `);
     }
+  });
+  sortedTypeTotals.forEach((agg) => {
+    htmlParts.push(`
+      <tr class="district-progress-total">
+        <td><strong>All Districts</strong></td>
+        <td><strong>${escapeHtml(agg.schoolType)}</strong></td>
+        <td><strong>${agg.trackedSchools}/${agg.totalSchools}</strong></td>
+        <td><strong>${agg.trackedClassrooms}/${agg.totalClassrooms}</strong></td>
+      </tr>
+    `);
   });
   htmlParts.push(`
     <tr class="district-progress-total">
