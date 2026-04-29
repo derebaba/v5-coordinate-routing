@@ -4783,6 +4783,13 @@ function onPlannerPrint() {
   const schoolLabelPools = new Map();
   const schoolLabelOffsets = new Map();
 
+  const compactSchoolName = (name) => String(name || "").replace(/ILKOKULU/gi, "IO");
+  const compactClassroomLabels = (label) => String(label || "")
+    .split(",")
+    .map((part) => part.trim().replace(/^\d+/, ""))
+    .filter(Boolean)
+    .join(", ") || "-";
+
   const researcherBlocks = [...draft.availableResearcherIds]
     .map((researcherId) => {
       const researcher = researcherMap.get(researcherId);
@@ -4878,7 +4885,7 @@ function onPlannerPrint() {
           <tr class="${blockIndex % 2 === 0 ? "print-row-a" : "print-row-b"}">
             ${idx === 0 ? `<td rowspan="${rows.length}">${escapeHtml(researcher?.fullName || "(Deleted researcher)")}</td>` : ""}
             <td>${escapeHtml(row.district)}</td>
-            <td class="print-col-school">${escapeHtml(row.schoolName)}</td>
+            <td class="print-col-school">${escapeHtml(compactSchoolName(row.schoolName))}</td>
             <td>${escapeHtml(row.schoolCode)}</td>
             <td>${escapeHtml(row.survey)}</td>
             <td>${(() => {
@@ -4886,7 +4893,7 @@ function onPlannerPrint() {
               const assigned = Number(row.classrooms || 0);
               return Number.isFinite(total) && total > 0 ? `${total}(${assigned})` : String(assigned || "");
             })()}</td>
-            <td>${escapeHtml(String(row.assignedClassroomLabels || "-"))}</td>
+            <td>${escapeHtml(compactClassroomLabels(row.assignedClassroomLabels))}</td>
             <td>${escapeHtml(row.workingHours)}</td>
             <td>${escapeHtml(row.lunchBreak)}</td>
             <td>${escapeHtml(row.duration)}</td>
