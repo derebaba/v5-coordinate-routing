@@ -4351,7 +4351,7 @@ function validatePlannerDraft(draft, routeInsights = null) {
   });
   const requiredTablets = [...perResearcherTablets.values()].reduce((sum, value) => sum + value, 0);
   if (requiredTablets > 480) {
-    errors.push(`Required tablets ${requiredTablets} exceeds daily limit 480.`);
+    warnings.push(`Required tablets ${requiredTablets} exceeds daily limit 480.`);
   }
 
   const routeWarnings = routeInsights?.warnings || getPlannerRouteInsights(draft).warnings;
