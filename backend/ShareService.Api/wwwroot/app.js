@@ -1653,7 +1653,9 @@ function renderSchools() {
         rowClass = "school-row-completed";
       } else if (status === "incomplete") {
         rowClass = "school-row-incomplete";
-      } else if (isFullyScheduled && status !== "scheduled") {
+      } else if (status === "scheduled") {
+        rowClass = "school-row-scheduled";
+      } else if (isFullyScheduled) {
         rowClass = "school-row-attention";
       }
       return `

@@ -575,6 +575,10 @@ tr:last-child td {
   background: #fff1ec;
 }
 
+.school-row-scheduled td {
+  background: #f3eefb;
+}
+
 .sort-btn {
   background: transparent;
   color: #324739;
