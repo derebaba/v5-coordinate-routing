@@ -87,6 +87,8 @@ const el = {
   schoolEditWorkingHours: document.getElementById("school-edit-working-hours"),
   schoolEditLunchBreak: document.getElementById("school-edit-lunch-break"),
   schoolEditClassroomCount: document.getElementById("school-edit-classroom-count"),
+  cityDefaultPrimaryClassrooms: document.getElementById("city-default-primary-classrooms"),
+  cityDefaultSecondaryClassrooms: document.getElementById("city-default-secondary-classrooms"),
   schoolEditMaxClassSize: document.getElementById("school-edit-max-class-size"),
   schoolEditSchoolCode: document.getElementById("school-edit-school-code"),
   schoolEditSurvey: document.getElementById("school-edit-survey"),
@@ -206,6 +208,12 @@ function bindEvents() {
     el.citySetupProgress.addEventListener("click", onCitySetupProgressClick);
   }
   el.schoolsFileInput.addEventListener("change", onSchoolsFileImport);
+  if (el.cityDefaultPrimaryClassrooms) {
+    el.cityDefaultPrimaryClassrooms.addEventListener("change", onCityDefaultClassroomsChange);
+  }
+  if (el.cityDefaultSecondaryClassrooms) {
+    el.cityDefaultSecondaryClassrooms.addEventListener("change", onCityDefaultClassroomsChange);
+  }
   if (el.schoolEditForm) {
     el.schoolEditForm.addEventListener("submit", onSchoolEditSubmit);
   }
@@ -427,7 +435,9 @@ function createEmptyCity(name) {
     researcherAssignments: [],
     dayVerifications: [],
     routeCache: [],
-    manualFollowUpWarnings: []
+    manualFollowUpWarnings: [],
+    defaultPrimaryClassrooms: 3,
+    defaultSecondaryClassrooms: 1
   };
 }
 
@@ -1043,10 +1053,17 @@ function normalizeState(parsed) {
     const manualFollowUpWarnings = Array.isArray(citySafe.manualFollowUpWarnings) ? citySafe.manualFollowUpWarnings : [];
     const validDayIds = new Set(dayPlans.map((item) => String(item.id || "").trim()).filter(Boolean));
 
+    const sanitizeClassroomDefault = (value, fallback) => {
+      const parsed = Number(value);
+      return Number.isFinite(parsed) && parsed >= 0 ? Math.floor(parsed) : fallback;
+    };
+
     return {
       id: citySafe.id || generateId("city"),
       name: String(citySafe.name || fallbackName).trim() || fallbackName,
       createdAt: String(citySafe.createdAt || "").trim() || new Date().toISOString(),
+      defaultPrimaryClassrooms: sanitizeClassroomDefault(citySafe.defaultPrimaryClassrooms, 3),
+      defaultSecondaryClassrooms: sanitizeClassroomDefault(citySafe.defaultSecondaryClassrooms, 1),
       schools: schools.map((school) => ({
         id: school.id || generateId("school"),
         name: String(school.name || "").trim(),
@@ -1228,6 +1245,7 @@ function renderAll() {
   renderDistrictProgress();
   renderResearcherAvailabilityOptions();
   renderResearchers();
+  renderCityDefaultClassrooms();
   renderDayPlans();
   ensureSelectedDay();
   renderPlannerDayTabs();
@@ -1337,6 +1355,42 @@ function onRenameCity(){
   city.name = name;
   noteDocumentMutation();
   renderAll();
+}
+
+function onCityDefaultClassroomsChange() {
+  const city = getCurrentCity();
+  if (!city) {
+    return;
+  }
+  const parsePositive = (value, fallback) => {
+    const num = Number(value);
+    return Number.isFinite(num) && num >= 0 ? Math.floor(num) : fallback;
+  };
+  city.defaultPrimaryClassrooms = parsePositive(el.cityDefaultPrimaryClassrooms?.value, 3);
+  city.defaultSecondaryClassrooms = parsePositive(el.cityDefaultSecondaryClassrooms?.value, 1);
+  if (el.cityDefaultPrimaryClassrooms) {
+    el.cityDefaultPrimaryClassrooms.value = String(city.defaultPrimaryClassrooms);
+  }
+  if (el.cityDefaultSecondaryClassrooms) {
+    el.cityDefaultSecondaryClassrooms.value = String(city.defaultSecondaryClassrooms);
+  }
+  noteDocumentMutation();
+}
+
+function renderCityDefaultClassrooms() {
+  const city = getCurrentCity();
+  if (el.cityDefaultPrimaryClassrooms) {
+    el.cityDefaultPrimaryClassrooms.value = String(
+      Number.isFinite(Number(city?.defaultPrimaryClassrooms)) ? Number(city.defaultPrimaryClassrooms) : 3
+    );
+    el.cityDefaultPrimaryClassrooms.disabled = !city;
+  }
+  if (el.cityDefaultSecondaryClassrooms) {
+    el.cityDefaultSecondaryClassrooms.value = String(
+      Number.isFinite(Number(city?.defaultSecondaryClassrooms)) ? Number(city.defaultSecondaryClassrooms) : 1
+    );
+    el.cityDefaultSecondaryClassrooms.disabled = !city;
+  }
 }
 
 async function onDeleteCity(){
@@ -2973,17 +3027,20 @@ function loadPlannerDraft(dayId) {
 }
 
 function createDefaultAssignment(dayId, researcherId) {
+  const city = getCurrentCity();
+  const defaultPrimary = Number.isFinite(Number(city?.defaultPrimaryClassrooms)) ? Number(city.defaultPrimaryClassrooms) : 3;
+  const defaultSecondary = Number.isFinite(Number(city?.defaultSecondaryClassrooms)) ? Number(city.defaultSecondaryClassrooms) : 1;
   return {
     id: generateId("assignment"),
     dayId,
     researcherId,
     primaryDistrict: "",
     primarySchoolId: "",
-    primaryClassrooms: 3,
+    primaryClassrooms: defaultPrimary,
     primarySarmal: false,
     secondaryDistrict: "",
     secondarySchoolId: "",
-    secondaryClassrooms: 1,
+    secondaryClassrooms: defaultSecondary,
     secondarySarmal: false,
     extraPrimaryRows: [],
     extraSecondaryRows: [],
