@@ -89,6 +89,8 @@ const el = {
   schoolEditClassroomCount: document.getElementById("school-edit-classroom-count"),
   cityDefaultPrimaryClassrooms: document.getElementById("city-default-primary-classrooms"),
   cityDefaultSecondaryClassrooms: document.getElementById("city-default-secondary-classrooms"),
+  cityDefaultClassroomsApply: document.getElementById("city-default-classrooms-apply"),
+  cityDefaultClassroomsStatus: document.getElementById("city-default-classrooms-status"),
   schoolEditMaxClassSize: document.getElementById("school-edit-max-class-size"),
   schoolEditSchoolCode: document.getElementById("school-edit-school-code"),
   schoolEditSurvey: document.getElementById("school-edit-survey"),
@@ -208,11 +210,8 @@ function bindEvents() {
     el.citySetupProgress.addEventListener("click", onCitySetupProgressClick);
   }
   el.schoolsFileInput.addEventListener("change", onSchoolsFileImport);
-  if (el.cityDefaultPrimaryClassrooms) {
-    el.cityDefaultPrimaryClassrooms.addEventListener("change", onCityDefaultClassroomsChange);
-  }
-  if (el.cityDefaultSecondaryClassrooms) {
-    el.cityDefaultSecondaryClassrooms.addEventListener("change", onCityDefaultClassroomsChange);
+  if (el.cityDefaultClassroomsApply) {
+    el.cityDefaultClassroomsApply.addEventListener("click", onCityDefaultClassroomsApply);
   }
   if (el.schoolEditForm) {
     el.schoolEditForm.addEventListener("submit", onSchoolEditSubmit);
@@ -1357,9 +1356,12 @@ function onRenameCity(){
   renderAll();
 }
 
-function onCityDefaultClassroomsChange() {
+function onCityDefaultClassroomsApply() {
   const city = getCurrentCity();
   if (!city) {
+    if (el.cityDefaultClassroomsStatus) {
+      el.cityDefaultClassroomsStatus.textContent = "Select a city first.";
+    }
     return;
   }
   const parsePositive = (value, fallback) => {
@@ -1375,6 +1377,9 @@ function onCityDefaultClassroomsChange() {
     el.cityDefaultSecondaryClassrooms.value = String(city.defaultSecondaryClassrooms);
   }
   noteDocumentMutation();
+  if (el.cityDefaultClassroomsStatus) {
+    el.cityDefaultClassroomsStatus.textContent = `Applied: S1=${city.defaultPrimaryClassrooms}, S2=${city.defaultSecondaryClassrooms}`;
+  }
 }
 
 function renderCityDefaultClassrooms() {
