@@ -4291,7 +4291,7 @@ function validatePlannerDraft(draft, routeInsights = null) {
     }
     const researcher = researcherMap.get(assignment.researcherId);
     if (!researcher) {
-      errors.push(`Assignment ${assignment.id} references a deleted researcher.`);
+      cleanupAssignmentIds.push(assignment.id);
       return;
     }
 
